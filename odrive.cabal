@@ -1,0 +1,89 @@
+
+name:                odrive
+version:             0.1.0.0
+synopsis:            odrive firmware
+-- description:
+license:             BSD3
+author:              Richard Marko
+maintainer:          srk@48.io
+copyright:           2017 Richard Marko
+-- category:
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     ODrive.Platforms
+                       ODrive.Tests.CANSendRecv
+                       ODrive.Tests.CAN2UART
+                       ODrive.LED
+                       ODrive.Tests.LED
+                       ODrive.Tests.Blink
+
+--                       BSP.Tests.UART.Types,
+--                       BSP.Tests.UART.Buffer,
+--                       BSP.Tests.UART.TestApp,
+
+  build-depends:       base >= 4.6,
+                       monadLib,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-hw,
+                       tower              >= 0.9,
+                       tower-config,
+                       tower-hal,
+                       tower-freertos-stm32 >= 0.9,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests
+
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable cansendrecv-test-gen
+  main-is:             CANSendRecv.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+
+executable can2uart-test-gen
+  main-is:             CAN2UART.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+executable blink-test-gen
+  main-is:             LEDTest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
