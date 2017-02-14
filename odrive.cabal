@@ -19,6 +19,9 @@ library
                        ODrive.LED
                        ODrive.Tests.LED
                        ODrive.Tests.Blink
+                       ODrive.Tests.SPI
+                       ODrive.Tests.DRV
+                       ODrive.Tests.DRVRegs
 
 --                       BSP.Tests.UART.Types,
 --                       BSP.Tests.UART.Buffer,
@@ -74,6 +77,22 @@ executable can2uart-test-gen
 
 executable blink-test-gen
   main-is:             LEDTest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+executable spi-test-gen
+  main-is:             SPITest.hs
   hs-source-dirs:      test
   build-depends:       base >= 4.6,
                        ivory,

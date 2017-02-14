@@ -5,19 +5,24 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module ODrive.Platforms
-  ( testPlatformParser
-  , ColoredLEDs(..)
-  , TestUART(..)
-  , TestSPI(..)
-  , TestI2C(..)
-  , TestCAN(..)
-  , TestDMA(..)
-  , TestPlatform(..)
-  , testplatform_clockconfig
-  , odrive
-  ) where
+module ODrive.Platforms where
+--  ( testPlatformParser
+--  , ColoredLEDs(..)
+--  , TestUART(..)
+--  , TestSPI(..)
+--  , TestI2C(..)
+--  , TestCAN(..)
+--  , TestDMA(..)
+--  , TestPlatform(..)
+--  , testplatform_clockconfig
+--  , odrive
+--  , drv8301
+--  , drv8301_en_gate
+--  , m1_ncs
+--  , pinOut
+--  ) where
 
+import Ivory.Language
 import Ivory.Tower.Config
 import Data.Char (toUpper)
 
@@ -32,14 +37,14 @@ import qualified Ivory.BSP.STM32F405.RNG         as F405
 import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.UART
-import Ivory.BSP.STM32.Peripheral.SPI hiding (ActiveHigh, ActiveLow)
+import Ivory.BSP.STM32.Peripheral.SPI as SPI -- hiding (ActiveHigh, ActiveLow)
 import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.Peripheral.RNG
 import Ivory.BSP.STM32.Peripheral.UART.DMA
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Config
 
-import ODrive.LED
+import ODrive.LED as LED
 
 testPlatformParser :: ConfigParser TestPlatform
 testPlatformParser = do
@@ -182,11 +187,28 @@ gpio2 = F405.pinA5
 gpio3 = F405.pinA4
 gpio4 = F405.pinA3
 
+
+drv8301_en_gate = F405.pinB12
+m1_ncs = F405.pinC14
+
+drv8301 :: SPIDevice
+drv8301 = SPIDevice
+    { spiDevPeripheral    = F405.spi3 -- spi3_periph
+    , spiDevCSPin         = F405.pinC13 -- M0 nCS
+    , spiDevClockHz       = 500000
+    , spiDevCSActive      = SPI.ActiveLow
+    , spiDevClockPolarity = ClockPolarityLow
+    , spiDevClockPhase    = ClockPhase2
+    , spiDevBitOrder      = MSBFirst
+    , spiDevName          = "drv8301m0"
+    }
+
+
 odrive :: TestPlatform
 odrive = TestPlatform
   { testplatform_leds = ColoredLEDs
-      { redLED  = LED gpio1 ActiveHigh
-      , blueLED = LED gpio2 ActiveHigh
+      { redLED  = LED gpio1 LED.ActiveHigh
+      , blueLED = LED gpio2 LED.ActiveHigh
       }
   , testplatform_uart = TestUART
     { testUARTPeriph = F405.uart1
@@ -209,3 +231,10 @@ odrive = TestPlatform
   , testplatform_rng = F405.rng
   , testplatform_stm32 = stm32f405Defaults 8
   }
+
+pinOut :: GPIOPin -> Ivory eff()
+pinOut pin = do
+  pinEnable pin
+  pinSetOutputType pin gpio_outputtype_pushpull
+  pinSetSpeed pin gpio_speed_2mhz
+  pinSetPUPD pin gpio_pupd_none
