@@ -189,12 +189,14 @@ gpio4 = F405.pinA3
 
 
 drv8301_en_gate = F405.pinB12
-m1_ncs = F405.pinC14
 
-drv8301 :: SPIDevice
-drv8301 = SPIDevice
-    { spiDevPeripheral    = F405.spi3 -- spi3_periph
-    , spiDevCSPin         = F405.pinC13 -- M0 nCS
+m0_nCS = F405.pinC13
+m1_nCS = F405.pinC14
+
+drv8301M0 :: SPIDevice
+drv8301M0 =  SPIDevice
+    { spiDevPeripheral    = F405.spi3
+    , spiDevCSPin         = m0_nCS
     , spiDevClockHz       = 500000
     , spiDevCSActive      = SPI.ActiveLow
     , spiDevClockPolarity = ClockPolarityLow
@@ -203,6 +205,17 @@ drv8301 = SPIDevice
     , spiDevName          = "drv8301m0"
     }
 
+drv8301M1 :: SPIDevice
+drv8301M1 =  SPIDevice
+    { spiDevPeripheral    = F405.spi3
+    , spiDevCSPin         = m1_nCS
+    , spiDevClockHz       = 500000
+    , spiDevCSActive      = SPI.ActiveLow
+    , spiDevClockPolarity = ClockPolarityLow
+    , spiDevClockPhase    = ClockPhase2
+    , spiDevBitOrder      = MSBFirst
+    , spiDevName          = "drv8301m1"
+    }
 
 odrive :: TestPlatform
 odrive = TestPlatform

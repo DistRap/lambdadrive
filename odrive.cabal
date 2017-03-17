@@ -101,6 +101,7 @@ executable spi-test-gen
                        ivory-hw,
                        tower          >= 0.9,
                        tower-config,
+                       tower-hal,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
                        ivory-bsp-tests,

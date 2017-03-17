@@ -16,13 +16,15 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.CAN
 import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Bus.Sched
+import qualified Ivory.Tower.HAL.Bus.SchedAsync as Async
 
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.CAN
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.SPI
 import Ivory.BSP.STM32.Peripheral.CAN.Filter
---import Ivory.BSP.STM32.Peripheral.SPI -- as SPI
+import Ivory.BSP.STM32.Peripheral.SPI -- as SPI
 
 import ODrive.Platforms
 import ODrive.LED
@@ -109,7 +111,9 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
       o <- emitter ostream 64
       return $ CoroutineBody $ \ yield -> do
         comment "drv coro start"
-        puts o "s"
+        puts o "start"
+        let (SPIDeviceHandle x) = dev
+        putc o (48 + x)
         let rpc req = req >>= emit req_e >> yield
 
         let putResp o r = do
@@ -121,28 +125,36 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
                   putc o val
 
         comment "drv coro forever"
+        forever $ do
+          comment "drv coro w"
+          putc o (48 + x)
+          puts o "w"
+          _ <- rpc (spi_req dev w_c1)
+          comment "drv coro r"
+          puts o "r"
+          r0 <- rpc (spi_req dev r_c1)
+          comment "drv coro resp"
+          puts o "i"
+          putResp o r0
+
         --forever $ do
-        comment "drv coro w"
-        puts o "w"
-        _ <- rpc (spi_req dev w_c1)
-        comment "drv coro r"
-        puts o "r"
-        r0 <- rpc (spi_req dev r_c1)
-        comment "drv coro resp"
-        puts o "i"
-        putResp o r0
-        r1 <- rpc (spi_req dev r_c1)
-        comment "drv coro resp"
-        puts o "1"
-        putResp o r1
-        r <- rpc (spi_req dev r_c1)
-        comment "drv coro resp"
-        puts o "2"
-        arrayMap $ \ix -> do
-          when (fromIx ix <? 2) $ do
-            val <- deref ((r ~> rx_buf) ! ix)
-            --putc o (48 + (castWith 0 $ fromIx $ ix))
-            putc o val
+        --  rx <- rpc (spi_req dev r_c1)
+        --  --comment "drv coro resp"
+        --  putc o 'i'
+          --putc o (48 + x)
+          --putResp o rx
+        --r1 <- rpc (spi_req dev r_c1)
+        --comment "drv coro resp"
+        --puts o "1"
+        --putResp o r1
+        --r <- rpc (spi_req dev r_c1)
+        --comment "drv coro resp"
+        --puts o "2"
+        --arrayMap $ \ix -> do
+        --  when (fromIx ix <? 2) $ do
+        --    val <- deref ((r ~> rx_buf) ! ix)
+        --    --putc o (48 + (castWith 0 $ fromIx $ ix))
+        --    putc o val
         --putResp o r2
 
 --        puts o "a"
@@ -224,19 +236,35 @@ app tocc totestspi touart toleds = do
   -- this monitor manage periodically flushing a buffer.
   ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
 
-  let devices = [drv8301]
+  let devices = [ drv8301M0
+                , drv8301M1
+                ]
+
   (sreq, sready) <- spiTower tocc devices (testSPIPins spi)
   --(BackpressureTransmit req res, sready) <- spiTower tocc devices (testSPIPins spi)
 
   initdone_sready <- channel
-  monitor "sensor_enable" $ do
+  monitor "drv_enable" $ do
     handler sready "init" $ do
       e <- emitter (fst initdone_sready) 1
       callback $ \t -> do
-        delay 1000
+        pinOut drv8301_en_gate
+        pinHigh drv8301_en_gate
+
         emit e t
 
-  drvTower sreq (snd initdone_sready) ostream (SPIDeviceHandle 0)
+  --drv_s <- channel
+
+  --drvTower sreq (snd initdone_sready) ostream (SPIDeviceHandle 0)
+
+  (drvTask0, drvReq0) <- task "drv8301_m0"
+  drvTower drvReq0 (snd initdone_sready) ostream (SPIDeviceHandle 0)
+
+  (drvTask1, drvReq1) <- task "drv8301_m1"
+  drvTower drvReq1 (snd initdone_sready) ostream (SPIDeviceHandle 1)
+
+  schedule (spiName $ testSPIPeriph spi)
+    [drvTask0, drvTask1] sready sreq
 
   periodic <- period (Milliseconds 500)
 
@@ -247,11 +275,8 @@ app tocc totestspi touart toleds = do
         ledSetup $ redLED leds
         ledSetup $ blueLED leds
 
-        pinOut drv8301_en_gate
-        pinHigh drv8301_en_gate
-
-        pinOut m1_ncs
-        pinHigh m1_ncs
+        --pinOut m1_ncs
+        --pinHigh m1_ncs
 
     handler periodic "periodic" $ do
 --      req_e <- emitter req 1
