@@ -28,3 +28,11 @@ endef
 
 $(foreach test,$(TESTS),$(eval $(call MKTEST,$(test))))
 $(foreach test,$(AADL_TESTS),$(eval $(call MK_AADL_TEST,$(test))))
+
+gdb:
+	arm-none-eabi-gdb \
+		--ex 'target extended-remote /dev/f4gdb' \
+		--ex 'monitor connect_srst disable' \
+		--ex 'monitor swdp_scan' \
+		--ex 'attach 1' \
+		build/spi-test/image

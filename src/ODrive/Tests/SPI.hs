@@ -98,6 +98,9 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
 
   monitor "drv8301mon" $ do
     write <- stateInit "write" (ival true)
+    ready <- stateInit "ready" (ival false)
+    retries <- stateInit "retries" (ival (0 :: Uint8))
+    rounds <- stateInit "rounds" (ival (0 :: Uint8))
 --    handler systemInit "init" $ do
 --      callback $ const $ do
 --        pinOut drv8301_en_gate
@@ -105,6 +108,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
 --
 --        pinOut m1_ncs
 --        pinHigh m1_ncs
+
 
     coroutineHandler init_chan res_c "drv8301" $ do
       req_e <- emitter req_c 1
@@ -114,7 +118,10 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         puts o "start"
         let (SPIDeviceHandle x) = dev
         putc o (48 + x)
-        let rpc req = req >>= emit req_e >> yield
+        --let rpc req = req >>= emit req_e >> yield
+        -- IT RESPONDS IN NEXT CYCLE!!!
+        -- emit twice
+        let rpc req = req >>= emit req_e >> yield >> req >>= emit req_e >> yield
 
         let putResp o r = do
               arrayMap $ \ix -> do
@@ -124,16 +131,44 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
                   comment "drv put"
                   putc o val
 
-        comment "drv coro forever"
+        comment "Loop until register changes or we reach retries"
         forever $ do
-          comment "drv coro w"
+          -- IT RESPONDS IN NEXT CYCLE!!!
+          rw <- rpc (spi_req dev w_c1)
+          rr <- rpc (spi_req dev r_c1)
+          --r <- yield
+          wval <- deref ((rw ~> rx_buf) ! 0)
           putc o (48 + x)
           puts o "w"
-          _ <- rpc (spi_req dev w_c1)
-          comment "drv coro r"
+          putc o wval
+
+          rval <- deref ((rr ~> rx_buf) ! 0)
           puts o "r"
-          r0 <- rpc (spi_req dev r_c1)
+          putc o rval
+
+          when (wval ==? 0x15) breakOut
+
+          rs <- deref retries
+          store retries (rs + 1)
+          when (rs >? 100) retVoid
+
+        store ready true
+
+        comment "drv coro forever"
+        forever $ do
+          putc o (48 + x)
+          c1w <- (spi_req dev w_c1)
+          emit req_e c1w
+          r <- yield
+          puts o "y"
+          putResp o r
+          --puts o "w"
+          comment "drv coro r"
+          --puts o "r"
+          r0 <- yield -- rpc (spi_req dev r_c1)
           comment "drv coro resp"
+          r <- deref rounds
+          ifte_ (r ==? 200) (puts o "-" >> store rounds (r+1)) (store rounds (r+1))
           puts o "i"
           putResp o r0
 
@@ -168,8 +203,12 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
 --        putResp o r1
         --retVoid
 
---    handler periodic "periodic" $ do
---      req_e <- emitter req_c 1
+    handler periodic "periodic" $ do
+      req_e <- emitter req_c 1
+      callback $ \_ -> do
+        isReady <- deref ready
+        when isReady $ (spi_req dev r_c1) >>= emit req_e
+
 --      o <- emitter ostream 64
 --
 ----      let spiEmit ::(GetAlloc eff ~ 'Scope cs) => Uint8 -> Uint8 -> Ivory eff ()
@@ -248,8 +287,6 @@ app tocc totestspi touart toleds = do
     handler sready "init" $ do
       e <- emitter (fst initdone_sready) 1
       callback $ \t -> do
-        pinOut drv8301_en_gate
-        pinHigh drv8301_en_gate
 
         emit e t
 
@@ -264,6 +301,7 @@ app tocc totestspi touart toleds = do
   drvTower drvReq1 (snd initdone_sready) ostream (SPIDeviceHandle 1)
 
   schedule (spiName $ testSPIPeriph spi)
+---    [drvTask0] sready sreq
     [drvTask0, drvTask1] sready sreq
 
   periodic <- period (Milliseconds 500)
@@ -275,8 +313,11 @@ app tocc totestspi touart toleds = do
         ledSetup $ redLED leds
         ledSetup $ blueLED leds
 
-        --pinOut m1_ncs
-        --pinHigh m1_ncs
+        pinOut drv8301_en_gate
+        pinHigh drv8301_en_gate
+
+   --     pinOut m1_nCS
+   --     pinHigh m1_nCS
 
     handler periodic "periodic" $ do
 --      req_e <- emitter req 1
