@@ -33,6 +33,7 @@ import qualified Ivory.BSP.STM32F405.GPIO.AF     as F405
 import qualified Ivory.BSP.STM32F405.SPI         as F405
 import qualified Ivory.BSP.STM32F405.I2C         as F405
 import qualified Ivory.BSP.STM32F405.RNG         as F405
+import qualified Ivory.BSP.STM32F405.GTIM2345    as F405
 
 import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32.Peripheral.GPIOF4
@@ -97,6 +98,13 @@ data TestDMA =
     , testDMAUARTPins   :: UARTPins
     }
 
+data Enc = EncTimer {
+      encTim :: F405.GTIM16
+    , encChan1  :: GPIOPin
+    , encChan2  :: GPIOPin
+    , encAf     :: GPIO_AF
+    }
+
 data TestPlatform =
   TestPlatform
     { testplatform_leds  :: ColoredLEDs
@@ -105,6 +113,7 @@ data TestPlatform =
     , testplatform_can   :: TestCAN
     , testplatform_rng   :: RNG
     , testplatform_stm32 :: STM32Config
+    , testplatform_enc   :: Enc
     }
 
 testplatform_clockconfig :: TestPlatform -> ClockConfig
@@ -174,6 +183,14 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 -- AUX_V PA6
 -- AUX_TEMP PC4
 
+-- TIM3
+-- PB4 TIM3_CH1
+-- PB5 TIM3_CH2
+
+-- TIM4
+-- PB6 TIM4_CH1
+-- PB7 TIM4_CH2
+
 spi3_pins :: SPIPins
 spi3_pins = SPIPins
   { spiPinMiso = F405.pinC12
@@ -187,11 +204,13 @@ gpio2 = F405.pinA5
 gpio3 = F405.pinA4
 gpio4 = F405.pinA3
 
-
 drv8301_en_gate = F405.pinB12
 
 m0_nCS = F405.pinC13
 m1_nCS = F405.pinC14
+
+
+enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim4
 
 drv8301M0 :: SPIDevice
 drv8301M0 =  SPIDevice
@@ -243,6 +262,7 @@ odrive = TestPlatform
       }
   , testplatform_rng = F405.rng
   , testplatform_stm32 = stm32f405Defaults 8
+  , testplatform_enc = enc0
   }
 
 pinOut :: GPIOPin -> Ivory eff()

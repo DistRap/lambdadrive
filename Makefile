@@ -2,7 +2,7 @@
 
 IVORYFLAGS ?= --const-fold --verbose
 #TESTS      := cansendrecv-test can2uart-test blink-test spi-test
-TESTS      := spi-test
+TESTS      := encoder-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)
@@ -35,4 +35,4 @@ gdb:
 		--ex 'monitor connect_srst disable' \
 		--ex 'monitor swdp_scan' \
 		--ex 'attach 1' \
-		build/spi-test/image
+		build/encoder-test/image

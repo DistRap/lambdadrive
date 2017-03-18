@@ -22,6 +22,7 @@ library
                        ODrive.Tests.SPI
                        ODrive.Tests.DRV
                        ODrive.Tests.DRVRegs
+                       ODrive.Tests.Encoder
 
 --                       BSP.Tests.UART.Types,
 --                       BSP.Tests.UART.Buffer,
@@ -91,8 +92,8 @@ executable blink-test-gen
                        odrive
   ghc-options:          -Wall
 
-executable spi-test-gen
-  main-is:             SPITest.hs
+executable encoder-test-gen
+  main-is:             EncoderTest.hs
   hs-source-dirs:      test
   build-depends:       base >= 4.6,
                        ivory,
