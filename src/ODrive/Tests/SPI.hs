@@ -105,6 +105,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
     rounds <- stateInit "rounds" (ival (0 :: Uint8))
     handler systemInit "init" $ do
       callback $ const $ do
+        -- enable en_gate pin connected to both DRVs
         pinOut drv8301_en_gate
         pinHigh drv8301_en_gate
 
@@ -138,7 +139,8 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
                   comment "drv put"
                   putc o val
 
-        comment "Loop until register changes or we reach retries"
+        comment "Initialization routine"
+        comment "Loop until register changes responding to our write or we reach retries"
         forever $ do
           _ <- rpc (spi_req dev w_c1)
           r <- rpc (spi_req dev r_c1)
@@ -213,13 +215,10 @@ app tocc totestspi touart toleds = do
 
   initdone_sready <- channel
   monitor "drv_enable" $ do
+    -- this just re-emits sready on initdone_sready, we could just use sready as well..
     handler sready "init" $ do
       e <- emitter (fst initdone_sready) 1
       callback $ \t -> do
-        -- enable en_gate pin connected to both DRVs
-        --pinOut drv8301_en_gate
-        --pinHigh drv8301_en_gate
-
         emit e t
 
   (drvTask0, drvReq0) <- task "drv8301_m0"
