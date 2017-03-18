@@ -75,7 +75,7 @@ m' :: DrvRW -> DrvAddr -> Bits 11 -> MSG
 m' rw addr c = fromRep $ withBits 0 $ do
   setField d_rw rw
   setField d_addr addr
-  setField d_data (c)
+  setField d_data c
 
 -- for odrive this is C1 $11 = 0x1550
 -- and C2 $12 = 0x1808, status1 0x0, status2 0x801
@@ -93,6 +93,14 @@ spi_req dev msg = fmap constRef $ local $ istruct
         h x = ival $ bitCast $ (toRep x) `iShiftR` 8
 
 
+drvTower :: (IvoryZero init, IvoryArea init) =>
+            BackpressureTransmit
+              ('Struct "spi_transaction_request")
+              ('Struct "spi_transaction_result")
+            -> ChanOutput init
+            -> ChanInput ('Stored Uint8)
+            -> SPIDeviceHandle
+            -> Tower e ()
 drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
   periodic <- period (Milliseconds 500)
 
@@ -120,8 +128,15 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         putc o (48 + x)
         --let rpc req = req >>= emit req_e >> yield
         -- IT RESPONDS IN NEXT CYCLE!!!
-        -- emit twice
-        let rpc req = req >>= emit req_e >> yield >> req >>= emit req_e >> yield
+        -- so we emit twice
+        --let rpc req = req >>= emit req_e >> yield >> req >>= emit req_e >> yield
+        -- ~equal to
+        let rpc req = do
+              x <- req
+              emit req_e x
+              yield -- previous command response
+              emit req_e x
+              yield -- our response
 
         let putResp o r = do
               arrayMap $ \ix -> do
@@ -146,7 +161,8 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
           puts o "r"
           putc o rval
 
-          when (wval ==? 0x15) breakOut
+          -- FIXME: should compare to w_c1 data
+          when (rval ==? 0x15) breakOut
 
           rs <- deref retries
           store retries (rs + 1)
@@ -156,12 +172,11 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
 
         comment "drv coro forever"
         forever $ do
-          putc o (48 + x)
-          c1w <- (spi_req dev w_c1)
-          emit req_e c1w
-          r <- yield
-          puts o "y"
-          putResp o r
+          --c1w <- (spi_req dev w_c1)
+          --emit req_e c1w
+          --r <- yield
+          --puts o "y"
+          --putResp o r
           --puts o "w"
           comment "drv coro r"
           --puts o "r"
@@ -169,6 +184,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
           comment "drv coro resp"
           r <- deref rounds
           ifte_ (r ==? 200) (puts o "-" >> store rounds (r+1)) (store rounds (r+1))
+          putc o (48 + x)
           puts o "i"
           putResp o r0
 
@@ -287,6 +303,9 @@ app tocc totestspi touart toleds = do
     handler sready "init" $ do
       e <- emitter (fst initdone_sready) 1
       callback $ \t -> do
+        -- enable en_gate pin connected to both DRVs
+        pinOut drv8301_en_gate
+        pinHigh drv8301_en_gate
 
         emit e t
 
@@ -312,9 +331,6 @@ app tocc totestspi touart toleds = do
       callback $ const $ do
         ledSetup $ redLED leds
         ledSetup $ blueLED leds
-
-        pinOut drv8301_en_gate
-        pinHigh drv8301_en_gate
 
    --     pinOut m1_nCS
    --     pinHigh m1_nCS
