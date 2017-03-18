@@ -60,6 +60,12 @@ r_c1 = m drv_read drv_control1
 r_c2 :: MSG
 r_c2 = m drv_read drv_control2
 
+r_s1 :: MSG
+r_s1 = m drv_read drv_status1
+
+r_s2 :: MSG
+r_s2 = m drv_read drv_status2
+
 -- for odrive this is C1 $11 = 0x1550
 -- and C2 $12 = 0x1808, status1 0x0, status2 0x801
 
@@ -174,8 +180,8 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
       req_e <- emitter req_c 1
       callback $ \_ -> do
         isReady <- deref ready
-        -- FIXME: read status registers, not control1
-        when isReady $ (spi_req dev r_c1) >>= emit req_e
+        -- FIXME: read both status registers
+        when isReady $ (spi_req dev r_s1) >>= emit req_e
 
 puts :: (GetAlloc eff ~ 'Scope cs)
      => Emitter ('Stored Uint8) -> String -> Ivory eff ()
