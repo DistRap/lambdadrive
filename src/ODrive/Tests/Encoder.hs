@@ -54,6 +54,7 @@ encoderTower (EncTimer {encTim=GTIM {..},  encChan1=c1, encChan2=c2, encAf=af}) 
         pinSetMode c1 gpio_mode_af
         pinSetMode c2 gpio_mode_af
 
+        -- FIXME: clearing not needed
         comment "reset smcr sms bits"
         modifyReg gtimRegSMCR $ setField gtim_smcr_sms (fromRep 0)
 

@@ -234,7 +234,9 @@ m0_nCS = F405.pinC13
 m1_nCS = F405.pinC14
 
 
-enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim4
+enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
+
+enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 
 drv8301M0 :: SPIDevice
 drv8301M0 =  SPIDevice
