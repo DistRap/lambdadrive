@@ -177,19 +177,43 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 --
 -- EN_GATE PB12
 -- nFAULT PD2
+-- VBUS-S PA0
 --
+-- |AUX
 -- AUX_L PB10
 -- AUX_H PB11
 -- AUX_V PA6
 -- AUX_TEMP PC4
 
--- TIM3
+
+-- || Peripherals
+-- |TIM2 (AUX)
+-- PB10 TIM2_CH3
+-- PB11 TIM2_CH4
+--
+-- |TIM3 (E0)
 -- PB4 TIM3_CH1
 -- PB5 TIM3_CH2
 
--- TIM4
+-- |TIM4 (E1)
 -- PB6 TIM4_CH1
 -- PB7 TIM4_CH2
+--
+-- |TIM1 (M0)
+-- PA8  TIM1_CH1
+-- PA9  TIM1_CH2
+-- PA10 TIM1_CH3
+-- PB13 TIM1_CH1N
+-- PB14 TIM1_CH2N
+-- PB15 TIM1_CH3N
+--
+-- |TIM8 (M1)
+-- PC6  TIM8_CH1
+-- PC7  TIM8_CH2
+-- PC8  TIM8_CH3
+-- PA7  TIM8_CH1N
+-- PB0  TIM8_CH2N
+-- PB1  TIM8_CH3N
 
 spi3_pins :: SPIPins
 spi3_pins = SPIPins
