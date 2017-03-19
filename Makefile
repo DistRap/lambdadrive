@@ -6,6 +6,12 @@ TESTS      := encoder-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)
+GDB := arm-none-eabi-gdb \
+		--ex 'target extended-remote /dev/f4gdb' \
+		--ex 'monitor connect_srst disable' \
+		--ex 'monitor swdp_scan' \
+		--ex 'set mem inaccessible-by-default off' \
+		--ex 'attach 1'
 
 .PHONY: test clean $(TESTS) $(AADL_TESTS) $(CLEANS)
 test: $(TESTS) $(AADL_TESTS)
@@ -17,6 +23,12 @@ $(1):
 	make -C build/$(1)
 $(1)-clean:
 	rm -rf build/$(1)
+$(1)-gdb: $(1)
+	$(GDB) build/$(1)/image
+$(1)-gdb-load: $(1)
+	$(GDB) --ex 'load' build/$(1)/image
+$(1)-gdb-run: $(1)
+	$(GDB) --ex 'load' --ex 'run' build/$(1)/image
 endef
 
 define MK_AADL_TEST
@@ -28,11 +40,3 @@ endef
 
 $(foreach test,$(TESTS),$(eval $(call MKTEST,$(test))))
 $(foreach test,$(AADL_TESTS),$(eval $(call MK_AADL_TEST,$(test))))
-
-gdb:
-	arm-none-eabi-gdb \
-		--ex 'target extended-remote /dev/f4gdb' \
-		--ex 'monitor connect_srst disable' \
-		--ex 'monitor swdp_scan' \
-		--ex 'attach 1' \
-		build/encoder-test/image
