@@ -23,6 +23,7 @@ library
                        ODrive.Tests.DRV
                        ODrive.Tests.DRVRegs
                        ODrive.Tests.Encoder
+                       ODrive.Tests.PWM
 
 --                       BSP.Tests.UART.Types,
 --                       BSP.Tests.UART.Buffer,
@@ -92,8 +93,42 @@ executable blink-test-gen
                        odrive
   ghc-options:          -Wall
 
+executable spi-test-gen
+  main-is:             SPITest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-hal,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
 executable encoder-test-gen
   main-is:             EncoderTest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-hal,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+executable pwm-test-gen
+  main-is:             PWMTest.hs
   hs-source-dirs:      test
   build-depends:       base >= 4.6,
                        ivory,

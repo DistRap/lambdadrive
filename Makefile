@@ -1,8 +1,7 @@
 #include ../stack.mk
 
 IVORYFLAGS ?= --const-fold --verbose
-#TESTS      := cansendrecv-test can2uart-test blink-test spi-test
-TESTS      := encoder-test
+TESTS      := cansendrecv-test can2uart-test blink-test spi-test pwm-test encoder-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)

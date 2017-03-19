@@ -26,6 +26,7 @@ import Ivory.Language
 import Ivory.Tower.Config
 import Data.Char (toUpper)
 
+import qualified Ivory.BSP.STM32F405.ATIM18      as F405
 import qualified Ivory.BSP.STM32F405.CAN         as F405
 import qualified Ivory.BSP.STM32F405.UART        as F405
 import qualified Ivory.BSP.STM32F405.GPIO        as F405
@@ -105,6 +106,17 @@ data Enc = EncTimer {
     , encAf     :: GPIO_AF
     }
 
+data PWM = PWMTimer {
+      pwmTim  :: F405.ATIM
+    , pwmC1   :: GPIOPin
+    , pwmC2   :: GPIOPin
+    , pwmC3   :: GPIOPin
+    , pwmC1N  :: GPIOPin
+    , pwmC2N  :: GPIOPin
+    , pwmC3N  :: GPIOPin
+    , pwmAf   :: GPIO_AF
+    }
+
 data TestPlatform =
   TestPlatform
     { testplatform_leds  :: ColoredLEDs
@@ -114,6 +126,7 @@ data TestPlatform =
     , testplatform_rng   :: RNG
     , testplatform_stm32 :: STM32Config
     , testplatform_enc   :: Enc
+    , testplatform_pwm   :: PWM
     }
 
 testplatform_clockconfig :: TestPlatform -> ClockConfig
@@ -238,6 +251,16 @@ enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
 
 enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 
+pwm0 = PWMTimer F405.tim1
+    F405.pinA8 F405.pinA9 F405.pinA10
+    F405.pinB13 F405.pinB14 F405.pinB15
+    F405.gpio_af_tim1
+
+pwm1 = PWMTimer F405.tim8
+    F405.pinC6 F405.pinC7 F405.pinC8
+    F405.pinA7 F405.pinB0 F405.pinB1
+    F405.gpio_af_tim8
+
 drv8301M0 :: SPIDevice
 drv8301M0 =  SPIDevice
     { spiDevPeripheral    = F405.spi3
@@ -289,6 +312,7 @@ odrive = TestPlatform
   , testplatform_rng = F405.rng
   , testplatform_stm32 = stm32f405Defaults 8
   , testplatform_enc = enc0
+  , testplatform_pwm = pwm0
   }
 
 pinOut :: GPIOPin -> Ivory eff()
