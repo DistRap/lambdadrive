@@ -24,9 +24,9 @@ $(1)-clean:
 	rm -rf build/$(1)
 $(1)-gdb: $(1)
 	$(GDB) build/$(1)/image
-$(1)-gdb-load: $(1)
+$(1)-load: $(1)
 	$(GDB) --ex 'load' build/$(1)/image
-$(1)-gdb-run: $(1)
+$(1)-run: $(1)
 	$(GDB) --ex 'load' --ex 'run' build/$(1)/image
 endef
 
