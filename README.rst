@@ -28,14 +28,45 @@ To build all images::
 Tests
 -----
 
-CANSendRcv
-  test application sending packets from CAN1, blinks on received packets.
-  Image available in build/cansendrcv-test/image
+Encoder
+  Application for testing encoder capture mode with general purpose timer.
+
+  Stores counts in `counter` variable, direction in `dir`, these can be inspected
+  in gdb with `p counter` and `p dir`.
+PWM
+  Test application outputing center aligned 6-channel PWM with
+  deadtime enabled using advanced timer TIM1.
+SPI
+  Application for testing DRV8301 communications.
+
+  Talks to two DRV8301s sharing SPI bus, outputs debug info on UART1.
+  Polls status register every 500ms after successful initialization.
+CANSendRecv
+  Test application sending packets from CAN1, blinks on received packets.
 CAN2UART
-  test application for receiving and sending
+  Test application for receiving and sending
   CAN packets controlled by UART
 Blink
   Blinks external LEDs on GPIO1 and GPIO2
+
+
+Run `make` to build all test applications.
+Specific application can be built with `make APP`
+loaded with `make APP-load` and `make APP-run`.
+
+To load PWM test application run::
+
+        make pwm-load
+
+to also issue run and start application after loading use::
+
+        make pwm-run
+
+to just run gdb with new binary without loading::
+
+        make pwm-gdb
+        # issuing 'load' in gdb         == pwm-load
+        # running both 'load' and 'run' == pwm-run
 
 
 Flashing
