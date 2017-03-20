@@ -77,6 +77,7 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
           setBit atim_ccer_cc1e
           setBit atim_ccer_cc2e
           setBit atim_ccer_cc3e
+          setBit atim_ccer_cc4e
 
           setBit atim_ccer_cc1ne
           setBit atim_ccer_cc2ne
@@ -100,6 +101,10 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
           -- seems to be about 120ns
           setField atim_bdtr_dtg (fromRep 20)
           setBit atim_bdtr_bkp
+
+        comment "channel 4 ccr to 1"
+        modifyReg atimRegCCR4 $ setField atim_16_data (fromRep 0x1)
+        -- maybe we also need to atimRegDIER setBit atim_dier_cc4ie
 
 --        test values, example of directly modifying CCR regs, we use pwm_set though
 --        modifyReg atimRegCCR1 $ setField atim_16_data (fromRep 0x1000)

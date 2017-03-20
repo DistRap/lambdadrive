@@ -1,7 +1,7 @@
 #include ../stack.mk
 
 IVORYFLAGS ?= --const-fold --verbose
-TESTS      := cansendrecv-test can2uart-test blink-test spi-test pwm-test encoder-test
+TESTS      := cansendrecv-test can2uart-test blink-test spi-test pwm-test encoder-test adc-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)
@@ -18,6 +18,9 @@ clean: $(CLEANS)
 
 define MKTEST
 $(1):
+	# ideally we would be only target executable
+	# needs fixing in stack
+	# https://github.com/commercialhaskell/stack/issues/1406
 	stack build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
 	make -C build/$(1)
 $(1)-clean:

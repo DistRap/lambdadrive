@@ -28,6 +28,9 @@ To build all images::
 Tests
 -----
 
+ADC
+  Run PWM on TIM1, also triggering ADC1 with TIM1_CCR4. ADC1 reads out
+  pinA0 every 500 msecs and also with ADC interrupt.
 Encoder
   Application for testing encoder capture mode with general purpose timer.
 

@@ -26,6 +26,7 @@ import Ivory.Language
 import Ivory.Tower.Config
 import Data.Char (toUpper)
 
+import qualified Ivory.BSP.STM32F405.ADC         as F405
 import qualified Ivory.BSP.STM32F405.ATIM18      as F405
 import qualified Ivory.BSP.STM32F405.CAN         as F405
 import qualified Ivory.BSP.STM32F405.UART        as F405
@@ -35,7 +36,9 @@ import qualified Ivory.BSP.STM32F405.SPI         as F405
 import qualified Ivory.BSP.STM32F405.I2C         as F405
 import qualified Ivory.BSP.STM32F405.RNG         as F405
 import qualified Ivory.BSP.STM32F405.GTIM2345    as F405
+import qualified Ivory.BSP.STM32F405.Interrupt   as F405
 
+import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.UART
@@ -45,6 +48,7 @@ import Ivory.BSP.STM32.Peripheral.RNG
 import Ivory.BSP.STM32.Peripheral.UART.DMA
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Config
+import Ivory.BSP.STM32.Interrupt
 
 import ODrive.LED as LED
 
@@ -99,6 +103,13 @@ data TestDMA =
     , testDMAUARTPins   :: UARTPins
     }
 
+data ADC = ADC {
+      adcPeriph   :: ADCPeriph
+    , adcChans    :: [(Int, GPIOPin)]
+    , adcInjChans :: [(Int, GPIOPin)]
+    , adcInt      :: HasSTM32Interrupt
+    }
+
 data Enc = EncTimer {
       encTim :: F405.GTIM16
     , encChan1  :: GPIOPin
@@ -127,6 +138,7 @@ data TestPlatform =
     , testplatform_stm32 :: STM32Config
     , testplatform_enc   :: Enc
     , testplatform_pwm   :: PWM
+    , testplatform_adc   :: ADC
     }
 
 testplatform_clockconfig :: TestPlatform -> ClockConfig
@@ -227,6 +239,72 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 -- PA7  TIM8_CH1N
 -- PB0  TIM8_CH2N
 -- PB1  TIM8_CH3N
+--
+-- |ADCs
+-- PA0  ADC_IN0   VBUS_S
+-- PA1  ADC_IN1   M1_TEMP
+-- PA3  ADC_IN3   GPIO4
+-- PA4  ADC_IN4   GPIO3
+-- PA5  ADC_IN5   GPIO2
+-- PA6  ADC_IN6   AUX_V
+-- PC0  ADC_IN10  M0_SO1
+-- PC1  ADC_IN11  M0_SO2
+-- PC2  ADC_IN12  M1_SO1
+-- PC3  ADC_IN13  M1_SO2
+-- PC4  ADC_IN14  AUX_TEMP
+-- PC5  ADC_IN15  M0_TEMP
+--
+-- ADCs - divider 4, 12 bit, 3 samples
+-- ADC1 - sw start IN5 injected IN0 (VBUS_S)
+--                              ^^ T1 CC4, rising
+-- ADC2 - T8 TRGO, rising IN13 (M1_SO2) injected IN10 (M0_SO1)
+--                                               ^^ T1 CC4, rising
+-- ADC3 - T8 TRGO, rising IN12 (M1_SO1) injected IN11 (M0_SO2)
+--                                               ^^ T1 CC4, rising
+--
+-- M0_DC_CAL PC9
+-- M1_DC_CAL PC1
+--
+--
+-- rise = ADC_EXTERNALTRIGCONVEDGE_RISING = ADC_CR2_EXTEN_0 = 0x1
+--
+-- ADC2 interrupt comes first, followed by ADC3
+--
+-- if it's ADC2 -> phase B
+-- else    ADC3 -> phase C
+--
+-- if CR2_EXTEN != ADC_EXTERNALTRIGCONVEDGE_NONE
+-- -> M1 DC_CAL
+--    reset M1_DC_CAL pin (next on M1 is current)
+--    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_CC4 rise (next on ADC is M0 current)
+--    if adc2 set ADC_IN10
+--    if adc3 set ADC_IN11
+-- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T1_CC4
+-- -> M0 current
+--    set M0_DC_CAL pin (next on M0 is DC_CAL)
+--    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_CC8 rise (next on ADC is M1 current)
+--    if adc2 set ADC_IN13
+--    if adc3 set ADC_IN12
+-- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T8_CC4
+-- -> M1 current
+--    set M1_DC_CAL pin (next on M1 is DC_CAL)
+--    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_TRGO rise (next on ADC is M0 DC_CAL)
+--    if adc2 set ADC_IN10
+--    if adc3 set ADC_IN11
+-- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T1_TRGO
+-- -> M0 DC_CAL
+--    reset M0_DC_CAL pin (next on M0 is current)
+--    clear CR2, set rise (next on ADC is M1 DC_CAL)
+--    if adc2 set ADC_IN13
+--    if adc3 set ADC_IN12
+
+adcint = HasSTM32Interrupt F405.ADC
+adc1 = ADC F405.adc1 [(5, F405.pinA5)] [(0, F405.pinA0)] adcint
+adc2 = ADC F405.adc2 [(13, F405.pinC3)] [(10, F405.pinC0)] adcint
+adc3 = ADC F405.adc3 [(12, F405.pinC2)] [(11, F405.pinC1)] adcint
+
+m0dcCal = F405.pinC9
+m1dcCal = F405.pinC1
 
 spi3_pins :: SPIPins
 spi3_pins = SPIPins
@@ -313,6 +391,7 @@ odrive = TestPlatform
   , testplatform_stm32 = stm32f405Defaults 8
   , testplatform_enc = enc0
   , testplatform_pwm = pwm0
+  , testplatform_adc = adc1
   }
 
 pinOut :: GPIOPin -> Ivory eff()
