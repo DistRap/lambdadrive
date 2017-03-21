@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module ODrive.Tests.DRVRegs where
+module ODrive.DRV8301.RegTypes where
 
 import Ivory.Language
 

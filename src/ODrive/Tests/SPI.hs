@@ -28,11 +28,11 @@ import Ivory.BSP.STM32.Peripheral.SPI -- as SPI
 
 import ODrive.Platforms
 import ODrive.LED
+import ODrive.DRV8301
+
 import BSP.Tests.UART.Buffer
 import BSP.Tests.UART.Types
 
-import ODrive.Tests.DRV
-import ODrive.Tests.DRVRegs
 
 
 [ivory|

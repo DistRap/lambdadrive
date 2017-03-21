@@ -17,11 +17,12 @@ library
                        ODrive.Tests.CANSendRecv
                        ODrive.Tests.CAN2UART
                        ODrive.LED
+                       ODrive.DRV8301
+                       ODrive.DRV8301.Regs
+                       ODrive.DRV8301.RegTypes
                        ODrive.Tests.LED
                        ODrive.Tests.Blink
                        ODrive.Tests.SPI
-                       ODrive.Tests.DRV
-                       ODrive.Tests.DRVRegs
                        ODrive.Tests.Encoder
                        ODrive.Tests.PWM
                        ODrive.Tests.ADC
