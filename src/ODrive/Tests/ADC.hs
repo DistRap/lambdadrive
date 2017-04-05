@@ -31,7 +31,7 @@ import ODrive.Tests.PWM hiding (uartTestTypes)
 import BSP.Tests.UART.Buffer
 import BSP.Tests.UART.Types
 
-adcTower ADC {adcPeriph=adcp@ADCPeriph{..}, adcChans=chans, adcInjChans=ichans, adcInt=int} = do
+adcTower ADC {adcPeriph=adcp@ADCPeriph{..}, adcChan=chan, adcInjChan=ichan, adcInt=int} = do
 
   periodic <- period (Milliseconds 500)
 
@@ -64,7 +64,7 @@ adcTower ADC {adcPeriph=adcp@ADCPeriph{..}, adcChans=chans, adcInjChans=ichans, 
 
     handler systemInit "init" $ do
       callback $ const $ do
-        mapM_ adc_in_pin $ (map snd chans) ++ (map snd ichans)
+        mapM_ adc_in_pin $ map snd [chan, ichan]
         adcInit adcp adc_12bit false
 
         comment "prescaler PCLK2 DIV4 for all adcs"

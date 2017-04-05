@@ -10,7 +10,7 @@ import ODrive.Tests.ADC (app)
 main :: IO ()
 main = compileTowerSTM32FreeRTOS testplatform_stm32 p $
         app (stm32config_clock . testplatform_stm32)
-            testplatform_adc
+            testplatform_adc1
             testplatform_pwm
             testplatform_uart
             testplatform_leds

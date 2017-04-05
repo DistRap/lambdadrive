@@ -105,8 +105,8 @@ data TestDMA =
 
 data ADC = ADC {
       adcPeriph   :: ADCPeriph
-    , adcChans    :: [(Int, GPIOPin)]
-    , adcInjChans :: [(Int, GPIOPin)]
+    , adcChan    :: (Uint8, GPIOPin)
+    , adcInjChan :: (Uint8, GPIOPin)
     , adcInt      :: HasSTM32Interrupt
     }
 
@@ -128,6 +128,8 @@ data PWM = PWMTimer {
     , pwmAf   :: GPIO_AF
     }
 
+type ADCs = (ADC, ADC, ADC)
+
 data TestPlatform =
   TestPlatform
     { testplatform_leds  :: ColoredLEDs
@@ -138,7 +140,10 @@ data TestPlatform =
     , testplatform_stm32 :: STM32Config
     , testplatform_enc   :: Enc
     , testplatform_pwm   :: PWM
-    , testplatform_adc   :: ADC
+    , testplatform_adc1  :: ADC
+    , testplatform_adc2  :: ADC
+    , testplatform_adc3  :: ADC
+    , testplatform_adcs  :: ADCs
     }
 
 testplatform_clockconfig :: TestPlatform -> ClockConfig
@@ -299,9 +304,9 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 --    if adc3 set ADC_IN12
 
 adcint = HasSTM32Interrupt F405.ADC
-adc1 = ADC F405.adc1 [(5, F405.pinA5)] [(0, F405.pinA0)] adcint
-adc2 = ADC F405.adc2 [(13, F405.pinC3)] [(10, F405.pinC0)] adcint
-adc3 = ADC F405.adc3 [(12, F405.pinC2)] [(11, F405.pinC1)] adcint
+adc1 = ADC F405.adc1 (5, F405.pinA5) (0, F405.pinA0) adcint
+adc2 = ADC F405.adc2 (13, F405.pinC3) (10, F405.pinC0) adcint
+adc3 = ADC F405.adc3 (12, F405.pinC2) (11, F405.pinC1) adcint
 
 m0dcCal = F405.pinC9
 m1dcCal = F405.pinC1
@@ -391,7 +396,10 @@ odrive = TestPlatform
   , testplatform_stm32 = stm32f405Defaults 8
   , testplatform_enc = enc0
   , testplatform_pwm = pwm0
-  , testplatform_adc = adc1
+  , testplatform_adc1 = adc1
+  , testplatform_adc2 = adc2
+  , testplatform_adc3 = adc3
+  , testplatform_adcs = (adc1, adc2, adc3)
   }
 
 pinOut :: GPIOPin -> Ivory eff()

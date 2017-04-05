@@ -63,10 +63,10 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
           setBit atim_ccmr2_ocm_oc3pe
           setBit atim_ccmr2_ocm_oc4pe
 
-        comment "master output trigger update"
+        comment "master output trigger update (TRGO)"
         modifyReg atimRegCR2 $ setField atim_cr2_mms cr2_mms_update
 
-        comment "reload value to max val"
+        comment "set reload value"
         -- #define TIM_1_8_PERIOD_CLOCKS 10192
         -- computable
         -- should be part of PWMTimer record
@@ -97,7 +97,7 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
           -- #define TIM_1_8_DEADTIME_CLOCKS 20
           -- we should be able to compute this but
           -- datasheet is a bit cryptic (page 586)
-          --
+
           -- seems to be about 120ns
           setField atim_bdtr_dtg (fromRep 20)
           setBit atim_bdtr_bkp
