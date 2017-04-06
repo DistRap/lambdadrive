@@ -262,14 +262,15 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 -- ADCs - divider 4, 12 bit, 3 samples
 -- ADC1 - sw start IN5 injected IN0 (VBUS_S)
 --                              ^^ T1 CC4, rising
--- ADC2 - T8 TRGO, rising IN13 (M1_SO2) injected IN10 (M0_SO1)
---                                               ^^ T1 CC4, rising
--- ADC3 - T8 TRGO, rising IN12 (M1_SO1) injected IN11 (M0_SO2)
---                                               ^^ T1 CC4, rising
+-- ADC2 - switches between injected IN10 (M0_SO1) and IN13 (M1_SO2)
+-- ADC3 - switches between injected IN11 (M0_SO2) and IN12 (M1_SO1)
+--      - both also switch to DC cals in the same manner ^^
+--
+-- M0 triggered on both ADCS by rising T1 CC4, then switches to T1 TRGO for DC cal
+-- M1 triggered on both ADCS by rising T8 CC4, then switches to regular conversion for DC cal
 --
 -- M0_DC_CAL PC9
 -- M1_DC_CAL PC1
---
 --
 -- rise = ADC_EXTERNALTRIGCONVEDGE_RISING = ADC_CR2_EXTEN_0 = 0x1
 --
