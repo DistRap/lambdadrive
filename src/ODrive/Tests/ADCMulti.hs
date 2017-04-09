@@ -25,7 +25,6 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Peripheral.ADC
-import Ivory.BSP.STM32.Peripheral.ATIM18
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
@@ -34,16 +33,42 @@ import ODrive.Tests.PWM hiding (uartTestTypes)
 import BSP.Tests.UART.Buffer
 import BSP.Tests.UART.Types
 
+[ivory|
+struct adc_sample
+  { vbus    :: Stored Uint16
+  ; phase_a :: Stored Uint16
+  ; phase_b :: Stored Uint16
+  ; phase_c :: Stored Uint16
+  ; meas_t  :: Stored ITime
+  }
+|]
+
+adc_types :: Module
+adc_types = package "adc_types" $ do
+  defStruct (Proxy :: Proxy "adc_sample")
+
+
+setJExt :: ADCPeriph -> ADCJExtSel -> Ivory eff ()
+setJExt ADCPeriph{..} jextsel = modifyReg adcRegCR2 $ setField adc_cr2_jextsel jextsel
+
 -- ADC1 vbus
 -- ADC2 phase B
--- ADC2 phase C
+-- ADC3 phase C
 
+adcMultiTower :: (ADC, ADC, ADC)
+              -> Tower e (ChanOutput ('Struct "adc_sample"))
 adcMultiTower (
-    ADC {adcPeriph=adcp1, adcChan=chan1, adcInjChan=ichan1, adcInt=int}
-  , ADC {adcPeriph=adcp2, adcChan=chan2, adcInjChan=ichan2, adcInt=_}
-  , ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_}) = do
+    a1@ADC {adcPeriph=adcp1, adcChan=chan1, adcInjChan=ichan1, adcInt=int}
+  , a2@ADC {adcPeriph=adcp2, adcChan=chan2, adcInjChan=ichan2, adcInt=_}
+  , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_}) = do
+
+
+  towerModule adc_types
+  towerDepends adc_types
 
   periodic <- period (Milliseconds 500)
+
+  adc_chan <- channel
 
 -- FIXME
 -- +#define  TICK_INT_PRIORITY            ((uint32_t)15U)   /*!< tick interrupt priority */
@@ -69,41 +94,74 @@ adcMultiTower (
     -- adc_src_t1trgo M0 dccal
     -- adc_src_t8cc4 M1 c
 
-    vbus <- stateInit "vbus" (ival (0 :: Uint16))
-    phase_b <- stateInit "phase_b" (ival (0 :: Uint16))
-    phase_c <- stateInit "phase_c" (ival (0 :: Uint16))
+    adc_vbus    <- stateInit "adc_vbus" (ival (0 :: Uint16))
+    adc_phase_b <- stateInit "adc_phase_b" (ival (0 :: Uint16))
+    adc_phase_c <- stateInit "adc_phase_c" (ival (0 :: Uint16))
 
     tmp <- stateInit "tmp" (ival (0 :: Uint8))
 
     handler isr "adc_capture" $ do
+      e <- emitter (fst adc_chan) 1
       callback $ const $ do
 
-        -- TODO: get and store all ADCs
-        -- state machine
-        -- git show 3b268eed6a5396f5ac5439e1f2a8144cfccc86a7
         -- current and dc cal isrs should arrive in order ADC2 -> ADC3
         -- both phases are read at the same time
         --
         -- if source is CC4 we're measuring current at SVM vector 0
         -- if source is TRGO we're measuring DC_CAL at SVM vector 7
         --
-        -- TODO: add adcId to record and use instead of i, pass ADCPeriph to handleADC as well
+        -- populate adc_meas struct with current values
+        let mkMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "adc_sample"))
+            mkMeas = do
+              pb <- deref adc_phase_b
+              pc <- deref adc_phase_c
 
-        -- handle adc reading from ADC`i`
-        let handleADC i isInjected = do
+              t <- getTime
+
+              meas <- local $ istruct
+                [ phase_a .= ival 0
+                , phase_b .= ival pb
+                , phase_c .= ival pc ]
+
+              store (meas ~> meas_t) t
+              --  , meas_t  .= t ]
+
+              return $ constRef meas
+
+        -- handle adc reading from ADC, toggle between t1cc4 and t1trgo
+        let handleADC ADC{..} isInjected = do
               val <- deref adc_last_injected
+
+              cr2 <- getReg $ adcRegCR2 adcPeriph
+              let trgSrc = cr2 #. adc_cr2_jextsel
+              let trgSrcT1CC4 = trgSrc ==? adc_jext_t1cc4
+              let trgSrcT1TRGO = trgSrc ==? adc_jext_t1trgo
+              let i = adcId
+
+              comment "flip between t1cc4 and t1trgo for adc2 and 3"
+              when (i ==? 2 .|| i ==? 3) $ do
+                cond_
+                  [ trgSrcT1CC4  ==> setJExt adcPeriph adc_jext_t1trgo
+                  , trgSrcT1TRGO ==> setJExt adcPeriph adc_jext_t1cc4 ]
 
               -- XXX: we only handle injected conversions for now
               cond_
-                [ i ==? 1 ==> store (vbus) val
-                -- XXX: adc2/3 should switch from T1_CC4 to T1_TRGO and vice versa
-                -- adc2 in13
-                , i ==? 2 ==> store (phase_b) val
-                , i ==? 3 ==> store (phase_c) val
+                [ (i ==? 1) ==> do
+                    store (adc_vbus) val
+
+                , (i ==? 2) ==> do
+                    store (adc_phase_b) val
+
+                , (i ==? 3) ==> do
+                    store (adc_phase_c) val
+                    meas <- mkMeas
+                    emit e meas
                 ]
 
         -- check which ADC fired
-        let checkADC ADCPeriph{..} i = do
+        let checkADC a@ADC{..} = do
+              let ADCPeriph{..} = adcPeriph
+
               sr <- getReg adcRegSR
 
               comment "regular conversion"
@@ -112,7 +170,7 @@ adcMultiTower (
 
                 store adc_last_regular (toRep (dr #. adc_dr_data))
 
-                handleADC i false
+                handleADC a false
 
                 modifyReg adcRegSR $ do
                   clearBit adc_sr_strt
@@ -124,14 +182,14 @@ adcMultiTower (
 
                 store adc_last_injected (toRep (jdr1 #. adc_jdr1_data))
 
-                handleADC i true
+                handleADC a true
 
                 comment "clear interrupt flags in status register"
                 modifyReg adcRegSR $ do
                   clearBit adc_sr_jstrt
                   clearBit adc_sr_jeoc
 
-        mapM_ (uncurry checkADC) (zip [adcp1, adcp2, adcp3] [1 :: Uint8, 2, 3])
+        mapM_ checkADC [a1, a2, a3]
 
         interrupt_enable int
 
@@ -193,6 +251,9 @@ adcMultiTower (
 
         interrupt_enable int
 
+  -- return output side of the channel
+  return (snd adc_chan)
+
 adc_in_pin :: GPIOPin -> Ivory eff ()
 adc_in_pin p = do
   pinEnable  p
@@ -224,7 +285,8 @@ app tocc  totestadcs totestpwm touart toleds = do
   ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
 
   pwmTower pwm
-  adcMultiTower adcs
+
+  adc_chan <- adcMultiTower adcs
 
   periodic <- period (Milliseconds 500)
 
@@ -239,6 +301,26 @@ app tocc  totestadcs totestpwm touart toleds = do
       o <- emitter ostream 64
       callback $ \_ -> do
         puts o "q"
+
+    ladc_a <- stateInit "ladc_a" (ival (0 :: Uint16))
+    ladc_b <- stateInit "ladc_b" (ival (0 :: Uint16))
+    ladc_c <- stateInit "ladc_c" (ival (0 :: Uint16))
+    ladc_tim <- stateInit "ladc_tim" (ival (0 :: ITime))
+    msgCount <- stateInit "msgcount" (ival (0 :: Uint64))
+
+    handler adc_chan "adc_chan" $ do
+      callback $ \x -> do
+        a <- (x ~>* phase_a)
+        b <- (x ~>* phase_b)
+        c <- (x ~>* phase_c)
+        t <- (x ~>* meas_t)
+        store ladc_a a
+        store ladc_b b
+        store ladc_c c
+        store ladc_tim t
+
+        c <- deref msgCount
+        store msgCount (c+1)
 
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral $ ord c)

@@ -104,10 +104,11 @@ data TestDMA =
     }
 
 data ADC = ADC {
-      adcPeriph   :: ADCPeriph
+      adcId      :: Uint8
+    , adcPeriph  :: ADCPeriph
     , adcChan    :: (Uint8, GPIOPin)
     , adcInjChan :: (Uint8, GPIOPin)
-    , adcInt      :: HasSTM32Interrupt
+    , adcInt     :: HasSTM32Interrupt
     }
 
 data Enc = EncTimer {
@@ -305,9 +306,9 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 --    if adc3 set ADC_IN12
 
 adcint = HasSTM32Interrupt F405.ADC
-adc1 = ADC F405.adc1 (5, F405.pinA5) (0, F405.pinA0) adcint
-adc2 = ADC F405.adc2 (13, F405.pinC3) (10, F405.pinC0) adcint
-adc3 = ADC F405.adc3 (12, F405.pinC2) (11, F405.pinC1) adcint
+adc1 = ADC 1 F405.adc1 (5, F405.pinA5) (0, F405.pinA0) adcint
+adc2 = ADC 2 F405.adc2 (13, F405.pinC3) (10, F405.pinC0) adcint
+adc3 = ADC 3 F405.adc3 (12, F405.pinC2) (11, F405.pinC1) adcint
 
 m0dcCal = F405.pinC9
 m1dcCal = F405.pinC1
