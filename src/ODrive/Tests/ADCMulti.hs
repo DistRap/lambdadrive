@@ -195,6 +195,9 @@ adcMultiTower (
 
     handler systemInit "init" $ do
       callback $ const $ do
+
+        interrupt_set_priority int 5
+
         mapM_ adc_in_pin $ map snd [chan1, chan2, chan3, ichan1, ichan2, ichan3]
 
         adcInit adcp1 adc_12bit false
