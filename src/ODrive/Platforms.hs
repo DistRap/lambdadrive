@@ -321,26 +321,33 @@ spi3_pins = SPIPins
   , spiPinAF   = F405.gpio_af_spi3
   }
 
+gpio1, gpio2, gpio3, gpio4 :: GPIOPin
 gpio1 = F405.pinB2
 gpio2 = F405.pinA5
 gpio3 = F405.pinA4
 gpio4 = F405.pinA3
 
+drv8301_en_gate :: GPIOPin
 drv8301_en_gate = F405.pinB12
+
+m0_dc_cal, m1_dc_cal :: GPIOPin
+m0_dc_cal = F405.pinC9
+m1_dc_cal = F405.pinC1
 
 m0_nCS = F405.pinC13
 m1_nCS = F405.pinC14
-
 
 enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
 
 enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 
+pwm0 :: PWM
 pwm0 = PWMTimer F405.tim1
     F405.pinA8 F405.pinA9 F405.pinA10
     F405.pinB13 F405.pinB14 F405.pinB15
     F405.gpio_af_tim1
 
+pwm1 :: PWM
 pwm1 = PWMTimer F405.tim8
     F405.pinC6 F405.pinC7 F405.pinC8
     F405.pinA7 F405.pinB0 F405.pinB1
