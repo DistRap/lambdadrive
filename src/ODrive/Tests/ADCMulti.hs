@@ -29,24 +29,51 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
 import ODrive.LED
+import ODrive.DRV8301
 import ODrive.Tests.PWM hiding (uartTestTypes)
 import BSP.Tests.UART.Buffer
 import BSP.Tests.UART.Types
 
 [ivory|
 struct adc_sample
-  { vbus    :: Stored Uint16
-  ; phase_a :: Stored Uint16
-  ; phase_b :: Stored Uint16
-  ; phase_c :: Stored Uint16
+  { vbus    :: Stored IFloat
+  ; phase_b :: Stored IFloat
+  ; phase_c :: Stored IFloat
   ; meas_t  :: Stored ITime
+  }
+
+struct dccal_sample
+  { dccal_b :: Stored IFloat
+  ; dccal_c :: Stored IFloat
   }
 |]
 
 adc_types :: Module
 adc_types = package "adc_types" $ do
   defStruct (Proxy :: Proxy "adc_sample")
+  defStruct (Proxy :: Proxy "dccal_sample")
 
+phaseCurrentFromADC :: Uint16 -> IFloat
+phaseCurrentFromADC val = current $ shunt_volt $ amp_out_volt $ adcval_bal val
+  where
+    adcval_bal :: Uint16 -> IFloat
+    adcval_bal x = safeCast $ x - 2048
+
+    amp_out_volt :: IFloat -> IFloat
+    amp_out_volt x = 3.3 / 4096 * x
+
+    -- drv_gain_40, static for now
+    rev_gain :: IFloat
+    rev_gain = 1/40
+
+    shunt_conductance = 1/0.0005  -- [S]
+
+    shunt_volt x = x * rev_gain
+
+    current x = x * shunt_conductance
+
+vbusVoltageFromADC :: Uint16 -> IFloat
+vbusVoltageFromADC val = (safeCast val) * 3.3 * 11 / 4096
 
 setJExt :: ADCPeriph -> ADCJExtSel -> Ivory eff ()
 setJExt ADCPeriph{..} jextsel = modifyReg adcRegCR2 $ setField adc_cr2_jextsel jextsel
@@ -56,19 +83,23 @@ setJExt ADCPeriph{..} jextsel = modifyReg adcRegCR2 $ setField adc_cr2_jextsel j
 -- ADC3 phase C
 
 adcMultiTower :: (ADC, ADC, ADC)
-              -> Tower e (ChanOutput ('Struct "adc_sample"))
+              -> GPIOPin
+              -> Tower e (ChanOutput ('Struct "adc_sample"), ChanOutput ('Struct "dccal_sample"))
 adcMultiTower (
     a1@ADC {adcPeriph=adcp1, adcChan=chan1, adcInjChan=ichan1, adcInt=int}
   , a2@ADC {adcPeriph=adcp2, adcChan=chan2, adcInjChan=ichan2, adcInt=_}
-  , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_}) = do
+  , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_})
+  drv8301_dc_cal = do
 
 
   towerModule adc_types
   towerDepends adc_types
 
+
   periodic <- period (Milliseconds 500)
 
-  adc_chan <- channel
+  adc_chan <- channel -- ADC readings (adc_meas)
+  adc_dc_chan <- channel -- DC calibration measurements (dccal_meas)
 
 -- FIXME
 -- +#define  TICK_INT_PRIORITY            ((uint32_t)15U)   /*!< tick interrupt priority */
@@ -94,6 +125,7 @@ adcMultiTower (
     -- adc_src_t1trgo M0 dccal
     -- adc_src_t8cc4 M1 c
 
+    -- store raw values for debugging
     adc_vbus    <- stateInit "adc_vbus" (ival (0 :: Uint16))
     adc_phase_b <- stateInit "adc_phase_b" (ival (0 :: Uint16))
     adc_phase_c <- stateInit "adc_phase_c" (ival (0 :: Uint16))
@@ -102,6 +134,8 @@ adcMultiTower (
 
     handler isr "adc_capture" $ do
       e <- emitter (fst adc_chan) 1
+      edc <- emitter (fst adc_dc_chan) 1
+
       callback $ const $ do
 
         -- current and dc cal isrs should arrive in order ADC2 -> ADC3
@@ -113,18 +147,27 @@ adcMultiTower (
         -- populate adc_meas struct with current values
         let mkMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "adc_sample"))
             mkMeas = do
-              pb <- deref adc_phase_b
-              pc <- deref adc_phase_c
+              pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
+              pc <- fmap phaseCurrentFromADC $ deref adc_phase_c
 
               t <- getTime
 
               meas <- local $ istruct
-                [ phase_a .= ival 0
-                , phase_b .= ival pb
+                [ phase_b .= ival pb
                 , phase_c .= ival pc ]
 
               store (meas ~> meas_t) t
-              --  , meas_t  .= t ]
+
+              return $ constRef meas
+
+        let mkDCCalMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "dccal_sample"))
+            mkDCCalMeas = do
+              pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
+              pc <- fmap phaseCurrentFromADC $ deref adc_phase_c
+
+              meas <- local $ istruct
+                [ dccal_b .= ival pb
+                , dccal_c .= ival pc ]
 
               return $ constRef meas
 
@@ -136,13 +179,23 @@ adcMultiTower (
               let trgSrc = cr2 #. adc_cr2_jextsel
               let trgSrcT1CC4 = trgSrc ==? adc_jext_t1cc4
               let trgSrcT1TRGO = trgSrc ==? adc_jext_t1trgo
+              let isDCCal = trgSrcT1TRGO
               let i = adcId
 
-              comment "flip between t1cc4 and t1trgo for adc2 and 3"
+              -- flip between t1cc4 and t1trgo for adc2 and 3, toggling
+              -- between phase current measurements and DC calibration measurements
               when (i ==? 2 .|| i ==? 3) $ do
                 cond_
-                  [ trgSrcT1CC4  ==> setJExt adcPeriph adc_jext_t1trgo
-                  , trgSrcT1TRGO ==> setJExt adcPeriph adc_jext_t1cc4 ]
+                  [ trgSrcT1CC4  ==> do
+                      -- next on this ADC is DC Cal
+                      pinHigh drv8301_dc_cal
+                      setJExt adcPeriph adc_jext_t1trgo
+
+                  , trgSrcT1TRGO ==> do
+                      -- next on this ADC is current
+                      comment "WAT"
+                      pinLow drv8301_dc_cal
+                      setJExt adcPeriph adc_jext_t1cc4 ]
 
               -- XXX: we only handle injected conversions for now
               cond_
@@ -152,10 +205,11 @@ adcMultiTower (
                 , (i ==? 2) ==> do
                     store (adc_phase_b) val
 
+                -- only emit phase measurements after both were taken
+                -- (they are comming in order from checkADC)
                 , (i ==? 3) ==> do
                     store (adc_phase_c) val
-                    meas <- mkMeas
-                    emit e meas
+                    ifte_ isDCCal (mkMeas >>= emit e) (mkDCCalMeas >>= emit edc)
                 ]
 
         -- check which ADC fired
@@ -197,6 +251,8 @@ adcMultiTower (
       callback $ const $ do
 
         interrupt_set_priority int 5
+
+        pinOut drv8301_dc_cal
 
         mapM_ adc_in_pin $ map snd [chan1, chan2, chan3, ichan1, ichan2, ichan3]
 
@@ -254,8 +310,8 @@ adcMultiTower (
 
         interrupt_enable int
 
-  -- return output side of the channel
-  return (snd adc_chan)
+  -- return output side of measurement channels
+  return (snd adc_chan, snd adc_dc_chan)
 
 adc_in_pin :: GPIOPin -> Ivory eff ()
 adc_in_pin p = do
@@ -289,7 +345,7 @@ app tocc  totestadcs totestpwm touart toleds = do
 
   pwmTower pwm
 
-  adc_chan <- adcMultiTower adcs
+  (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal
 
   periodic <- period (Milliseconds 500)
 
@@ -305,25 +361,41 @@ app tocc  totestadcs totestpwm touart toleds = do
       callback $ \_ -> do
         puts o "q"
 
-    ladc_a <- stateInit "ladc_a" (ival (0 :: Uint16))
-    ladc_b <- stateInit "ladc_b" (ival (0 :: Uint16))
-    ladc_c <- stateInit "ladc_c" (ival (0 :: Uint16))
+
+    t0 <- stateInit "t0" (ival (0 :: ITime))
+    t1 <- stateInit "t1" (ival (0 :: ITime))
+    td <- stateInit "td" (ival (0 :: ITime))
+    -- mostly for debugging so we can print or display in gdb
+    ladc_b <- stateInit "ladc_b" (ival (0 :: IFloat))
+    ladc_c <- stateInit "ladc_c" (ival (0 :: IFloat))
     ladc_tim <- stateInit "ladc_tim" (ival (0 :: ITime))
     msgCount <- stateInit "msgcount" (ival (0 :: Uint64))
 
+    ldccal_b <- stateInit "ldccal_b" (ival (0 :: IFloat))
+    ldccal_c <- stateInit "ldccal_c" (ival (0 :: IFloat))
+
     handler adc_chan "adc_chan" $ do
       callback $ \x -> do
-        a <- (x ~>* phase_a)
-        b <- (x ~>* phase_b)
-        c <- (x ~>* phase_c)
+        t <- getTime
+        store t0 t
+
+        pb <- (x ~>* phase_b)
+        pc <- (x ~>* phase_c)
         t <- (x ~>* meas_t)
-        store ladc_a a
-        store ladc_b b
-        store ladc_c c
+        store ladc_b pb
+        store ladc_c pc
         store ladc_tim t
 
         c <- deref msgCount
         store msgCount (c+1)
+
+    handler adc_dc_chan "dccal_chan" $ do
+      callback $ \x -> do
+        db <- (x ~>* dccal_b)
+        dc <- (x ~>* dccal_c)
+
+        store ldccal_b db
+        store ldccal_c dc
 
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral $ ord c)
