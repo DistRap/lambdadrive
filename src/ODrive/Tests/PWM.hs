@@ -115,9 +115,9 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
         initpwm <- local (iarray [ ival midPWM, ival midPWM, ival midPWM])
         pwm_set atim initpwm
 
-        -- woot
-        -- * Generate an update event to reload the Prescaler·
-        -- and the repetition counter(only for TIM1 and TIM8) value immediately */
+        -- * Generate an update event to reload the prescaler
+        -- and the repetition counter(only for TIM1 and TIM8) value immediately
+        -- (To avoid wasted time cycles)
         -- TIMx->EGR = TIM_EGR_UG;
 
 pwm_out_pin :: GPIO_AF -> GPIOPin -> Ivory eff ()
