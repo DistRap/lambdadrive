@@ -1,3 +1,7 @@
 app
 build
 .stack-work
+attic
+TODO
+NOTES
+.gdb_history
