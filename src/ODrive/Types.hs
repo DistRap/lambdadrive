@@ -20,7 +20,6 @@ struct adc_sample
   { vbus    :: Stored IFloat
   ; phase_b :: Stored IFloat
   ; phase_c :: Stored IFloat
-  ; meas_t  :: Stored ITime
   }
 
 struct dccal_sample

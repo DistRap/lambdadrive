@@ -128,8 +128,6 @@ adcMultiTower (
                 [ phase_b .= ival pb
                 , phase_c .= ival pc ]
 
-              store (meas ~> meas_t) t
-
               return $ constRef meas
 
         let mkDCCalMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "dccal_sample"))
