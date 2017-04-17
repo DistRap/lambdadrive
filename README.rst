@@ -1,7 +1,7 @@
 odrive firmware
 ===============
 
-Experimental version of ODrive Firmware
+Experimental version of `ODrive Firmware <https://github.com/madcowswe/ODriveFirmware>`_
 
 Written in http://ivorylang.org/
 
