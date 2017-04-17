@@ -18,7 +18,7 @@ import ODrive.Types
 svm :: forall s eff . (GetAlloc eff ~ 'Scope s)
     => IFloat
     -> IFloat
-    -> Ivory eff (ConstRef ('Stack s) ('Struct "svm_out"))
+    -> Ivory eff (ConstRef ('Stack s) ('Struct "svm_sample"))
 svm alpha beta = do
   let obs3 = 1 / sqrt 3
   let tbs3 = 2 / sqrt 3

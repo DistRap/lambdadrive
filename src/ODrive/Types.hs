@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module ODrive.Types where
 
@@ -27,13 +28,20 @@ struct dccal_sample
   ; dccal_c :: Stored IFloat
   }
 
-struct svm_out
+struct svm_sample
   { svm_a :: Stored IFloat
   ; svm_b :: Stored IFloat
   ; svm_c :: Stored IFloat
   ; svm_sextant :: Stored IFloat
   }
 |]
+
+[ivory| string struct UARTBuffer 128 |]
+
+uartTestTypes :: Module
+uartTestTypes = package "uartTestTypes" $ do
+  defStringType (Proxy :: Proxy UARTBuffer)
+
 
 -- from SMACCMPilot.Flight.Control.PID
 -- | Constrain a floating point value to the range [xmin..xmax].
@@ -45,17 +53,46 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
       (ret xmax)
       (ret x)))
 
-odrive_types :: Module
-odrive_types = package "odrive_types" $ do
-  defStruct (Proxy :: Proxy "adc_sample")
-  defStruct (Proxy :: Proxy "dccal_sample")
-  defStruct (Proxy :: Proxy "svm_out")
-  depend serializeModule
-  wrappedPackMod svmOutWrapper
+odriveTypes :: Module
+odriveTypes = package "odrive_types" $ do
   incl fconstrain
 
-svmOutWrapper :: WrappedPackRep ('Struct "svm_out")
-svmOutWrapper = wrapPackRep "svm_out" $
+  defStruct (Proxy :: Proxy "adc_sample")
+  defStruct (Proxy :: Proxy "dccal_sample")
+  defStruct (Proxy :: Proxy "svm_sample")
+
+  defStringType (Proxy :: Proxy UARTBuffer)
+
+  depend serializeModule
+
+  wrappedPackMod svmSampleWrapper
+  wrappedPackMod adcSampleWrapper
+  wrappedPackMod dccalSampleWrapper
+
+
+adcSampleWrapper :: WrappedPackRep ('Struct "adc_sample")
+adcSampleWrapper = wrapPackRep "adc_sample" $
+  packStruct
+  [ packLabel vbus
+  , packLabel phase_b
+  , packLabel phase_c
+  ]
+
+instance Packable ('Struct "adc_sample") where
+  packRep = wrappedPackRep adcSampleWrapper
+
+dccalSampleWrapper :: WrappedPackRep ('Struct "dccal_sample")
+dccalSampleWrapper = wrapPackRep "dccal_sample" $
+  packStruct
+  [ packLabel dccal_b
+  , packLabel dccal_c
+  ]
+
+instance Packable ('Struct "dccal_sample") where
+  packRep = wrappedPackRep dccalSampleWrapper
+
+svmSampleWrapper :: WrappedPackRep ('Struct "svm_sample")
+svmSampleWrapper = wrapPackRep "svm_sample" $
   packStruct
   [ packLabel svm_a
   , packLabel svm_b
@@ -63,5 +100,5 @@ svmOutWrapper = wrapPackRep "svm_out" $
   , packLabel svm_sextant
   ]
 
-instance Packable ('Struct "svm_out") where
-  packRep = wrappedPackRep svmOutWrapper
+instance Packable ('Struct "svm_sample") where
+  packRep = wrappedPackRep svmSampleWrapper
