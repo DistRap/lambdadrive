@@ -13,45 +13,28 @@
 
 module ODrive.Tests.ADCMulti where
 
-import Data.Char (ord)
-
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.HW
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
+import Ivory.Tower.HAL.Bus.Sched
+import Ivory.Serialize
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.GPIOF4
-
 import ODrive.Platforms
+import ODrive.Types
+import ODrive.Control.SVM
+import ODrive.Control.Transform
 import ODrive.LED
 import ODrive.DRV8301
 import ODrive.Tests.PWM hiding (uartTestTypes)
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
-
-[ivory|
-struct adc_sample
-  { vbus    :: Stored IFloat
-  ; phase_b :: Stored IFloat
-  ; phase_c :: Stored IFloat
-  ; meas_t  :: Stored ITime
-  }
-
-struct dccal_sample
-  { dccal_b :: Stored IFloat
-  ; dccal_c :: Stored IFloat
-  }
-|]
-
-adc_types :: Module
-adc_types = package "adc_types" $ do
-  defStruct (Proxy :: Proxy "adc_sample")
-  defStruct (Proxy :: Proxy "dccal_sample")
+import ODrive.Utils
+import ODrive.Serialize
 
 phaseCurrentFromADC :: Uint16 -> IFloat
 phaseCurrentFromADC val = current $ shunt_volt $ amp_out_volt $ adcval_bal val
@@ -96,8 +79,8 @@ adcMultiTower (
 
   serializeTowerDeps
 
-  adc_chan <- channel -- ADC readings (adc_meas)
-  adc_dc_chan <- channel -- DC calibration measurements (dccal_meas)
+  adc_chan <- channel -- ADC readings (adc_sample struct)
+  adc_dc_chan <- channel -- DC calibration measurements (dccal_sample struct)
 
   isr <- signalUnsafe
             (Interrupt int)
@@ -106,10 +89,6 @@ adcMultiTower (
 
   monitor "adc_multi" $ do
     monitorModuleDef $ hw_moduledef
-
-    lastadc <- stateInit "lastadc" (ival (0 :: Uint16))
-    lastadci <- stateInit "lastadci" (ival (0 :: Uint16))
-    lastjeoc <- stateInit "lastjeoc" (ival (0 :: Uint8))
 
     adc_last_regular <- stateInit "adc_last_regular" (ival (0 :: Uint16))
     adc_last_injected <- stateInit "adc_last_injected" (ival (0 :: Uint16))
@@ -124,8 +103,6 @@ adcMultiTower (
     adc_vbus    <- stateInit "adc_vbus" (ival (0 :: Uint16))
     adc_phase_b <- stateInit "adc_phase_b" (ival (0 :: Uint16))
     adc_phase_c <- stateInit "adc_phase_c" (ival (0 :: Uint16))
-
-    tmp <- stateInit "tmp" (ival (0 :: Uint8))
 
     handler isr "adc_capture" $ do
       e <- emitter (fst adc_chan) 1
@@ -313,9 +290,6 @@ adc_in_pin p = do
   pinEnable  p
   pinSetMode p gpio_mode_analog
 
--- /end of relevant stuff
--- generic test app bones following, move this to lib and test lib
-
 app :: (e -> ClockConfig)
     -> (e -> ADCs)
     -> (e -> PWM)
@@ -323,78 +297,31 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc  totestadcs totestpwm touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
+  serializeTowerDeps
 
   adcs <- fmap totestadcs getEnv
   pwm  <- fmap totestpwm getEnv
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
-  (buffered_ostream, istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
-
-  monitor "dma" mon
-  -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
-  -- this monitor manage periodically flushing a buffer.
-  ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
+  (uarto, _uarti, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
+  monitor "uart" mon
 
   pwmTower pwm
-
   (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal
 
-  periodic <- period (Milliseconds 500)
+  div_adc <- rateDivider 30 (adc_chan)
+  div_adc_dc <- rateDivider 30 (adc_dc_chan)
 
-  monitor "simplecontroller" $ do
-    write <- stateInit "write" (ival true)
-    handler systemInit "init" $ do
-      callback $ const $ do
-        ledSetup $ redLED leds
-        ledSetup $ blueLED leds
+  uartTasks <- sequence
+    [ do
+        (t, chan) <- task name
+        monitor name $ f chan
+        return t
+    | (name, f) <-
+      [ ("adc", adcSender div_adc)
+      , ("dccal", dccalSender div_adc_dc)
+      ]
+    ]
 
-    handler periodic "periodic" $ do
-      o <- emitter ostream 64
-      callback $ \_ -> do
-        puts o "q"
-
-
-    t0 <- stateInit "t0" (ival (0 :: ITime))
-    t1 <- stateInit "t1" (ival (0 :: ITime))
-    td <- stateInit "td" (ival (0 :: ITime))
-    -- mostly for debugging so we can print or display in gdb
-    ladc_b <- stateInit "ladc_b" (ival (0 :: IFloat))
-    ladc_c <- stateInit "ladc_c" (ival (0 :: IFloat))
-    ladc_tim <- stateInit "ladc_tim" (ival (0 :: ITime))
-    msgCount <- stateInit "msgcount" (ival (0 :: Uint64))
-
-    ldccal_b <- stateInit "ldccal_b" (ival (0 :: IFloat))
-    ldccal_c <- stateInit "ldccal_c" (ival (0 :: IFloat))
-
-    handler adc_chan "adc_chan" $ do
-      callback $ \x -> do
-        t <- getTime
-        store t0 t
-
-        pb <- (x ~>* phase_b)
-        pc <- (x ~>* phase_c)
-        t <- (x ~>* meas_t)
-        store ladc_b pb
-        store ladc_c pc
-        store ladc_tim t
-
-        c <- deref msgCount
-        store msgCount (c+1)
-
-    handler adc_dc_chan "dccal_chan" $ do
-      callback $ \x -> do
-        db <- (x ~>* dccal_b)
-        dc <- (x ~>* dccal_c)
-
-        store ldccal_b db
-        store ldccal_c dc
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)
+  schedule "uart" uartTasks systemInit uarto
