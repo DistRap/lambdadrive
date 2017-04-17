@@ -124,7 +124,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         -- while your request is processed
         --let rpc req = req >>= emit req_e >> yield
         -- but IT RESPONDS IN THE NEXT CYCLE!!!
-        -- so we emit twice
+        -- so we emit twice and return the second reply
         --let rpc req = req >>= emit req_e >> yield >> req >>= emit req_e >> yield
         -- which is ~equal to
         let rpc req = do
