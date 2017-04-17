@@ -383,14 +383,24 @@ odrive = TestPlatform
       { redLED  = LED gpio1 LED.ActiveHigh
       , blueLED = LED gpio2 LED.ActiveHigh
       }
+-- f4 disco bridged
   , testplatform_uart = TestUART
-    { testUARTPeriph = F405.uart1
+    { testUARTPeriph = F405.uart2
     , testUARTPins = UARTPins
-        { uartPinTx = F405.pinB6
-        , uartPinRx = F405.pinB7
+        { uartPinTx = F405.pinA2
+        , uartPinRx = F405.pinA3
         , uartPinAF = F405.gpio_af_uart2
         }
     }
+-- odrive via encoder 2
+--  , testplatform_uart = TestUART
+--    { testUARTPeriph = F405.uart1
+--    , testUARTPins = UARTPins
+--        { uartPinTx = F405.pinB6
+--        , uartPinRx = F405.pinB7
+--        , uartPinAF = F405.gpio_af_uart1
+--        }
+--    }
   , testplatform_spi = TestSPI
     { testSPIPeriph = F405.spi3
     , testSPIPins   = spi3_pins
