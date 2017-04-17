@@ -23,6 +23,7 @@ library
                        ODrive.DRV8301
                        ODrive.DRV8301.Regs
                        ODrive.DRV8301.RegTypes
+                       ODrive.Serialize
                        ODrive.Fixed
                        ODrive.Utils
                        ODrive.Tests.LED
