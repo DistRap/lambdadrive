@@ -1,5 +1,6 @@
 #include ../stack.mk
 
+TARGET ?= /dev/f4gdb
 IVORYFLAGS ?= --const-fold --verbose
 TESTS      := \
 	cansendrecv-test \
@@ -14,7 +15,7 @@ AADL_TESTS :=
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)
 GDB := arm-none-eabi-gdb \
-		--ex 'target extended-remote /dev/f4gdb' \
+		--ex 'target extended-remote $(TARGET)' \
 		--ex 'monitor connect_srst disable' \
 		--ex 'monitor swdp_scan' \
 		--ex 'set mem inaccessible-by-default off' \
