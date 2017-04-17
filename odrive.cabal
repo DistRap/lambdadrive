@@ -24,6 +24,7 @@ library
                        ODrive.DRV8301.Regs
                        ODrive.DRV8301.RegTypes
                        ODrive.Fixed
+                       ODrive.Utils
                        ODrive.Tests.LED
                        ODrive.Tests.Blink
                        ODrive.Tests.SPI
@@ -32,21 +33,18 @@ library
                        ODrive.Tests.ADC
                        ODrive.Tests.ADCMulti
 
---                       BSP.Tests.UART.Types,
---                       BSP.Tests.UART.Buffer,
---                       BSP.Tests.UART.TestApp,
-
   build-depends:       base >= 4.6,
                        monadLib,
                        ivory,
                        ivory-stdlib,
+                       ivory-serialize,
                        ivory-hw,
+                       ivory-tower-hxstream,
                        tower              >= 0.9,
                        tower-config,
                        tower-hal,
                        tower-freertos-stm32 >= 0.9,
-                       ivory-bsp-stm32,
-                       ivory-bsp-tests
+                       ivory-bsp-stm32
 
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -66,7 +64,6 @@ executable cansendrecv-test-gen
                        ivory-bsp-tests,
                        odrive
   ghc-options:          -Wall
-
 
 executable can2uart-test-gen
   main-is:             CAN2UART.hs

@@ -29,11 +29,8 @@ import Ivory.BSP.STM32.Peripheral.SPI -- as SPI
 import ODrive.Platforms
 import ODrive.LED
 import ODrive.DRV8301
-
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
-
-
+import ODrive.Types
+import ODrive.Utils
 
 [ivory|
   bitdata MSG :: Bits 16 = drv8301msg
@@ -183,24 +180,14 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         -- FIXME: read both status registers
         when isReady $ (spi_req dev r_s1) >>= emit req_e
 
-puts :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> String -> Ivory eff ()
-puts e str = mapM_ (\c -> putc e (fromIntegral (ord c))) str
-
-putc :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> Uint8 -> Ivory eff ()
-putc = emitV
-
 app :: (e -> ClockConfig)
     -> (e -> TestSPI)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc totestspi touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
---  towerDepends drvTestTypes
---  towerModule  drvTestTypes
+  towerDepends odriveTypes
+  towerModule  odriveTypes
 
   spi  <- fmap totestspi getEnv
   leds <- fmap toleds getEnv
@@ -249,10 +236,3 @@ app tocc totestspi touart toleds = do
       o <- emitter ostream 64
       callback $ \_ -> do
         puts o "q"
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)

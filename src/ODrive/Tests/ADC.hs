@@ -10,8 +10,6 @@
 
 module ODrive.Tests.ADC where
 
-import Data.Char (ord)
-
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.HW
@@ -27,9 +25,9 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
 import ODrive.LED
-import ODrive.Tests.PWM hiding (uartTestTypes)
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
+import ODrive.Tests.PWM
+import ODrive.Types
+import ODrive.Utils
 
 adcTower ADC {adcPeriph=adcp@ADCPeriph{..}, adcChan=chan, adcInjChan=ichan, adcInt=int} = do
 
@@ -117,9 +115,6 @@ adc_in_pin p = do
   pinEnable  p
   pinSetMode p gpio_mode_analog
 
--- /end of relevant stuff
--- generic test app bones following, move this to lib and test lib
-
 app :: (e -> ClockConfig)
     -> (e -> ADC)
     -> (e -> PWM)
@@ -127,8 +122,8 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc  totestadc totestpwm touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
+  towerDepends odriveTypes
+  towerModule  odriveTypes
 
   adc  <- fmap totestadc getEnv
   pwm  <- fmap totestpwm getEnv
@@ -158,10 +153,3 @@ app tocc  totestadc totestpwm touart toleds = do
       o <- emitter ostream 64
       callback $ \_ -> do
         puts o "q"
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)

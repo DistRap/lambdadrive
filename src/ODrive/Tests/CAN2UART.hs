@@ -6,8 +6,6 @@
 
 module ODrive.Tests.CAN2UART where
 
-import Data.Char (ord)
-
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -21,16 +19,8 @@ import Ivory.BSP.STM32.Peripheral.CAN.Filter
 
 import ODrive.Platforms
 import ODrive.LED
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
-
-puts :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> String -> Ivory eff ()
-puts e str = mapM_ (\c -> putc e (fromIntegral (ord c))) str
-
-putc :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> Uint8 -> Ivory eff ()
-putc = emitV
+import ODrive.Types
+import ODrive.Utils
 
 canSend' :: AbortableTransmit ('Struct "can_message") ('Stored IBool)
          -> ChanOutput  ('Struct "can_message") -- ('Array 8 ('Stored Uint8)))
@@ -63,8 +53,8 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc totestcan touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
+  towerDepends odriveTypes
+  towerModule  odriveTypes
 
   can  <- fmap totestcan getEnv
   leds <- fmap toleds getEnv
@@ -176,10 +166,3 @@ echoPrompt greeting ostream istream canctl = do
           store (incoming ~> stringLengthL) 0
 
   where prompt = "tower> "
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)

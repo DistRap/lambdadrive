@@ -91,18 +91,13 @@ adcMultiTower (
   , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_})
   drv8301_dc_cal = do
 
+  towerModule odriveTypes
+  towerDepends odriveTypes
 
-  towerModule adc_types
-  towerDepends adc_types
-
-
-  periodic <- period (Milliseconds 500)
+  serializeTowerDeps
 
   adc_chan <- channel -- ADC readings (adc_meas)
   adc_dc_chan <- channel -- DC calibration measurements (dccal_meas)
-
--- FIXME
--- +#define  TICK_INT_PRIORITY            ((uint32_t)15U)   /*!< tick interrupt priority */
 
   isr <- signalUnsafe
             (Interrupt int)

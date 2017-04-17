@@ -25,8 +25,8 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
 import ODrive.LED
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
+import ODrive.Types
+import ODrive.Utils
 
 
 pwmTower :: PWM -> Tower e ()
@@ -138,25 +138,14 @@ pwm_set atim vals = do
     c <- deref val
     setReg reg (setField atim_16_data (fromRep c))
 
--- /end of relevant stuff
--- generic test app bones following, move this to lib and test lib
-
-puts :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> String -> Ivory eff ()
-puts e str = mapM_ (\c -> putc e (fromIntegral (ord c))) str
-
-putc :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> Uint8 -> Ivory eff ()
-putc = emitV
-
 app :: (e -> ClockConfig)
     -> (e -> PWM)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc totestpwm touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
+  towerDepends odriveTypes
+  towerModule  odriveTypes
 
   pwm  <- fmap totestpwm getEnv
   leds <- fmap toleds getEnv
@@ -184,10 +173,3 @@ app tocc totestpwm touart toleds = do
       o <- emitter ostream 64
       callback $ \_ -> do
         puts o "q"
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)

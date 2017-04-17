@@ -25,8 +25,8 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
 import ODrive.LED
-import BSP.Tests.UART.Buffer
-import BSP.Tests.UART.Types
+import ODrive.Types
+import ODrive.Utils
 
 encoderTower (EncTimer {encTim=GTIM {..},  encChan1=c1, encChan2=c2, encAf=af}) = do
 
@@ -105,22 +105,14 @@ encoderTower (EncTimer {encTim=GTIM {..},  encChan1=c1, encChan2=c2, encAf=af}) 
         d <- getReg gtimRegCR1
         store dir $ toRep (d #. gtim_cr1_dir)
 
-puts :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> String -> Ivory eff ()
-puts e str = mapM_ (\c -> putc e (fromIntegral (ord c))) str
-
-putc :: (GetAlloc eff ~ 'Scope cs)
-     => Emitter ('Stored Uint8) -> Uint8 -> Ivory eff ()
-putc = emitV
-
 app :: (e -> ClockConfig)
     -> (e -> Enc)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc totestenc touart toleds = do
-  towerDepends uartTestTypes
-  towerModule  uartTestTypes
+  towerDepends odriveTypes
+  towerModule  odriveTypes
 
   enc  <- fmap totestenc getEnv
   leds <- fmap toleds getEnv
@@ -148,10 +140,3 @@ app tocc totestenc touart toleds = do
       o <- emitter ostream 64
       callback $ \_ -> do
         puts o "q"
-
-isChar :: Uint8 -> Char -> IBool
-isChar b c = b ==? (fromIntegral $ ord c)
-
-uartTestTypes :: Module
-uartTestTypes = package "uartTestTypes" $ do
-  defStringType (Proxy :: Proxy UARTBuffer)
