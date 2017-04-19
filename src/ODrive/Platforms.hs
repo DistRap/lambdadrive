@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module ODrive.Platforms where
 --  ( testPlatformParser
@@ -418,8 +419,46 @@ odrive = TestPlatform
   , testplatform_adc3 = adc3
   , testplatform_adcs = (adc1, adc2, adc3)
 
-  , testplatform_stm32 = stm32f405Defaults 8
+  , testplatform_stm32 = odriveSTMConfig 8
   }
+
+
+data Divs = Divs {
+    div_hclk :: Integer
+  , div_pclk1 :: Integer
+  , div_pclk2 :: Integer
+  }
+
+externalXtalDivs :: Integer -> Integer -> Divs -> ClockConfig
+externalXtalDivs xtal_mhz sysclk_mhz Divs{..} = ClockConfig
+  { clockconfig_source = External (xtal_mhz * 1000 * 1000)
+  , clockconfig_pll    = PLLFactor
+      { pll_m = xtal_mhz
+      , pll_n = sysclk_mhz * 2
+      , pll_p = 2
+      , pll_q = 7
+      }
+  , clockconfig_hclk_divider = div_hclk
+  , clockconfig_pclk1_divider = div_pclk1
+  , clockconfig_pclk2_divider = div_pclk2
+  }
+
+odriveSTMConfig :: Integer -> STM32Config
+odriveSTMConfig xtal_mhz = STM32Config
+  { stm32config_processor  = STM32F405
+  , stm32config_px4version = Nothing
+  , stm32config_clock      = externalXtalDivs xtal_mhz 168 divs
+  -- XXX: this is 192 in total (112+16+64)
+  -- 64 is CCM (core coupled memory)
+  -- + 4kb additional backup sram
+  , stm32config_sram       = 128 * 1024
+  }
+  where
+    divs = Divs
+             { div_hclk = 1
+             , div_pclk1 = 2
+             , div_pclk2 = 1
+             }
 
 pinOut :: GPIOPin -> Ivory eff()
 pinOut pin = do
