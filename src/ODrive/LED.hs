@@ -5,6 +5,8 @@ import Ivory.Language
 
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
+import ODrive.Utils
+
 data LEDPolarity = ActiveHigh | ActiveLow
 data LED = LED GPIOPin LEDPolarity
 
@@ -22,16 +24,3 @@ ledOn (LED pin ActiveLow)  = pinLow  pin
 
 ledOff :: LED -> Ivory eff ()
 ledOff (LED pin _) = pinHiZ pin
-
-pinLow :: GPIOPin -> Ivory eff ()
-pinLow pin = do
-  pinClear pin
-  pinSetMode pin gpio_mode_output
-
-pinHigh :: GPIOPin -> Ivory eff ()
-pinHigh pin = do
-  pinSet pin
-  pinSetMode pin gpio_mode_output
-
-pinHiZ :: GPIOPin -> Ivory eff ()
-pinHiZ pin = pinSetMode pin gpio_mode_analog

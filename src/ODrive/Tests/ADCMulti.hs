@@ -310,8 +310,11 @@ app tocc  totestadcs totestpwm touart toleds = do
   pwmTower pwm
   (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal
 
-  div_adc <- rateDivider 30 (adc_chan)
-  div_adc_dc <- rateDivider 30 (adc_dc_chan)
+  debugTower gpio1 adc_chan
+  debugTower gpio1 adc_dc_chan
+
+  div_adc <- rateDivider 100 (adc_chan)
+  div_adc_dc <- rateDivider 100 (adc_dc_chan)
 
   uartTasks <- sequence
     [ do

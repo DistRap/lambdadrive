@@ -459,10 +459,3 @@ odriveSTMConfig xtal_mhz = STM32Config
              , div_pclk1 = 2
              , div_pclk2 = 1
              }
-
-pinOut :: GPIOPin -> Ivory eff()
-pinOut pin = do
-  pinEnable pin
-  pinSetOutputType pin gpio_outputtype_pushpull
-  pinSetSpeed pin gpio_speed_2mhz
-  pinSetPUPD pin gpio_pupd_none

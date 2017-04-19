@@ -12,6 +12,8 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
 
+import Ivory.BSP.STM32.Peripheral.GPIOF4
+
 isChar :: Uint8 -> Char -> IBool
 isChar b c = b ==? (fromIntegral $ ord c)
 
@@ -60,3 +62,33 @@ uartUnbuffer (BackpressureTransmit req res) = do
       callback $ const $ store flush_defer false
 
   return (fst c)
+
+-- blink on `pin` on every `chan` input
+debugTower pin chan = do
+  monitor "debug" $ do
+    handler systemInit "debugInit" $ do
+      callback $ const $ pinOut pin
+    handler chan "debug" $ do
+      callback $ const $ do
+        sequence_ $ take 6 $ repeat $ pinHigh pin
+        pinLow pin
+
+pinOut :: GPIOPin -> Ivory eff()
+pinOut pin = do
+  pinEnable pin
+  pinSetOutputType pin gpio_outputtype_pushpull
+  pinSetSpeed pin gpio_speed_2mhz
+  pinSetPUPD pin gpio_pupd_none
+
+pinLow :: GPIOPin -> Ivory eff ()
+pinLow pin = do
+  pinClear pin
+  pinSetMode pin gpio_mode_output
+
+pinHigh :: GPIOPin -> Ivory eff ()
+pinHigh pin = do
+  pinSet pin
+  pinSetMode pin gpio_mode_output
+
+pinHiZ :: GPIOPin -> Ivory eff ()
+pinHiZ pin = pinSetMode pin gpio_mode_analog
