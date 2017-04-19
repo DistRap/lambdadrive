@@ -25,7 +25,7 @@ library
                        ODrive.DRV8301.Regs
                        ODrive.DRV8301.RegTypes
                        ODrive.Serialize
-                       ODrive.Fixed
+                       --ODrive.Fixed
                        ODrive.Utils
                        ODrive.Tests.LED
                        ODrive.Tests.Blink
