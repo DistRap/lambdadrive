@@ -36,6 +36,8 @@ $(1)-clean:
 	rm -rf build/$(1)
 $(1)-gdb: $(1)
 	$(GDB) build/$(1)/image
+$(1)-gdbtui: $(1)
+	$(GDB) -tui build/$(1)/image
 $(1)-load: $(1)
 	$(GDB) --ex 'load' build/$(1)/image
 $(1)-run: $(1)
