@@ -157,6 +157,9 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
 
           rs <- deref retries
           store retries (rs + 1)
+
+          -- XXX: handle init timeout? or emit on some ready channel
+          -- when initialized
           when (rs >? 100) retVoid
 
         store ready true
@@ -164,6 +167,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         comment "drv coro forever"
         forever $ do
           comment "wait for response triggered by periodic request"
+          --- XXX: handle status register errors, emit them on separate chan
           r0 <- yield
           return ()
           comment "debug helpers"
@@ -195,7 +199,7 @@ app tocc totestspi touart toleds = do
 
   (buffered_ostream, istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
-  monitor "dma" mon
+  monitor "uart" mon
   -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
   -- this monitor manage periodically flushing a buffer.
   ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))

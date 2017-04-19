@@ -68,6 +68,14 @@ odriveTypes = package "odrive_types" $ do
   wrappedPackMod adcSampleWrapper
   wrappedPackMod dccalSampleWrapper
 
+odriveTowerDeps :: Tower e ()
+odriveTowerDeps = do
+  towerDepends odriveTypes
+  towerModule odriveTypes
+
+  towerDepends serializeModule
+  towerModule  serializeModule
+  mapM_ towerArtifact serializeArtifacts
 
 adcSampleWrapper :: WrappedPackRep ('Struct "adc_sample")
 adcSampleWrapper = wrapPackRep "adc_sample" $

@@ -305,12 +305,16 @@ testplatform_clockconfig = stm32config_clock . testplatform_stm32
 --    if adc2 set ADC_IN13
 --    if adc3 set ADC_IN12
 
+adcint :: HasSTM32Interrupt
 adcint = HasSTM32Interrupt F405.ADC
+adc1, adc2, adc3 :: ADC
 adc1 = ADC 1 F405.adc1 (5, F405.pinA5) (0, F405.pinA0) adcint
 adc2 = ADC 2 F405.adc2 (13, F405.pinC3) (10, F405.pinC0) adcint
 adc3 = ADC 3 F405.adc3 (12, F405.pinC2) (11, F405.pinC1) adcint
 
+m0dcCal :: GPIOPin
 m0dcCal = F405.pinC9
+m1dcCal :: GPIOPin
 m1dcCal = F405.pinC1
 
 spi3_pins :: SPIPins
@@ -334,11 +338,15 @@ m0_dc_cal, m1_dc_cal :: GPIOPin
 m0_dc_cal = F405.pinC9
 m1_dc_cal = F405.pinC1
 
+m0_nCS :: GPIOPin
 m0_nCS = F405.pinC13
+m1_nCS :: GPIOPin
 m1_nCS = F405.pinC14
 
+enc0 :: Enc
 enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
 
+enc1 :: Enc
 enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 
 pwm0 :: PWM
@@ -412,13 +420,14 @@ odrive = TestPlatform
       , testCANFilters = F405.canFilters
       }
   , testplatform_rng = F405.rng
-  , testplatform_stm32 = stm32f405Defaults 8
   , testplatform_enc = enc0
   , testplatform_pwm = pwm0
   , testplatform_adc1 = adc1
   , testplatform_adc2 = adc2
   , testplatform_adc3 = adc3
   , testplatform_adcs = (adc1, adc2, adc3)
+
+  , testplatform_stm32 = stm32f405Defaults 8
   }
 
 pinOut :: GPIOPin -> Ivory eff()

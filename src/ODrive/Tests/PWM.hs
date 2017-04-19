@@ -67,10 +67,9 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
         modifyReg atimRegCR2 $ setField atim_cr2_mms cr2_mms_update
 
         comment "set reload value"
-        -- #define TIM_1_8_PERIOD_CLOCKS 10192
-        -- computable
         -- should be part of PWMTimer record
-        modifyReg atimRegARR $ setField atim_16_data (fromRep 0x27d0)
+        modifyReg atimRegARR $ setField atim_16_data (fromRep 10192)
+        --modifyReg atimRegARR $ setField atim_16_data (fromRep 2048)
 
         comment "enable outputs and complementary outputs"
         modifyReg atimRegCCER $ do
