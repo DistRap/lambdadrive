@@ -119,13 +119,15 @@ adcMultiTower (
         -- populate adc_meas struct with current values
         let mkMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "adc_sample"))
             mkMeas = do
+              bus <- fmap vbusVoltageFromADC $ deref adc_vbus
               pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
               pc <- fmap phaseCurrentFromADC $ deref adc_phase_c
 
               t <- getTime
 
               meas <- local $ istruct
-                [ phase_b .= ival pb
+                [ vbus .= ival bus
+                , phase_b .= ival pb
                 , phase_c .= ival pc ]
 
               return $ constRef meas
