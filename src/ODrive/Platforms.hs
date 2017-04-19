@@ -10,7 +10,6 @@ module ODrive.Platforms where
 --  , ColoredLEDs(..)
 --  , TestUART(..)
 --  , TestSPI(..)
---  , TestI2C(..)
 --  , TestCAN(..)
 --  , TestDMA(..)
 --  , TestPlatform(..)
@@ -33,7 +32,6 @@ import qualified Ivory.BSP.STM32F405.UART        as F405
 import qualified Ivory.BSP.STM32F405.GPIO        as F405
 import qualified Ivory.BSP.STM32F405.GPIO.AF     as F405
 import qualified Ivory.BSP.STM32F405.SPI         as F405
-import qualified Ivory.BSP.STM32F405.I2C         as F405
 import qualified Ivory.BSP.STM32F405.RNG         as F405
 import qualified Ivory.BSP.STM32F405.GTIM2345    as F405
 import qualified Ivory.BSP.STM32F405.Interrupt   as F405
@@ -43,7 +41,6 @@ import Ivory.BSP.STM32.Peripheral.CAN
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.Peripheral.SPI as SPI -- hiding (ActiveHigh, ActiveLow)
-import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.Peripheral.RNG
 import Ivory.BSP.STM32.Peripheral.UART.DMA
 import Ivory.BSP.STM32.ClockConfig
@@ -81,12 +78,6 @@ data TestSPI =
     { testSPIPeriph :: SPIPeriph
     , testSPIPins   :: SPIPins
     -- TODO FIXME: move CS pins for test devices into TestSPI
-    }
-
-data TestI2C =
-  TestI2C
-    { testI2C     :: I2CPeriph
-    , testI2CPins :: I2CPins
     }
 
 data TestCAN =
