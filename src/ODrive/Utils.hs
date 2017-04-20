@@ -64,6 +64,8 @@ uartUnbuffer (BackpressureTransmit req res) = do
   return (fst c)
 
 -- blink on `pin` on every `chan` input
+debugTower :: (IvoryZero a, IvoryArea a) =>
+              GPIOPin -> ChanOutput a -> Tower e ()
 debugTower pin chan = do
   monitor "debug" $ do
     handler systemInit "debugInit" $ do
