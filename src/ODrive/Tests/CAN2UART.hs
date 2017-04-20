@@ -32,8 +32,8 @@ canSend' req msg = do
       handler msg "can_msg" $ do
         abort_emitter <- emitter (abortableAbort    req) 1
         req_emitter   <- emitter (abortableTransmit req) 1
-        callback $ \msg  -> do
-          refCopy last_sent msg
+        callback $ \txmsg  -> do
+          refCopy last_sent txmsg
 
           was_pending <- deref tx_pending
           ifte_ was_pending (emitV abort_emitter true) $ do
@@ -144,7 +144,6 @@ echoPrompt greeting ostream istream canctl = do
       callbackV $ \input -> do
         putc o input -- echo to terminal
         push input
-        let testChar = (input `isChar`)
         pos <- deref (incoming ~> stringLengthL)
         --a <- local $ iarray [0..7]
         when (pos ==? 8) $ do

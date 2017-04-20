@@ -102,7 +102,6 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
   periodic <- period (Milliseconds 500)
 
   monitor "drv8301mon" $ do
-    write <- stateInit "write" (ival true)
     ready <- stateInit "ready" (ival false)
     retries <- stateInit "retries" (ival (0 :: Uint8))
     rounds <- stateInit "rounds" (ival (0 :: Uint8))
@@ -128,19 +127,19 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         --let rpc req = req >>= emit req_e >> yield >> req >>= emit req_e >> yield
         -- which is ~equal to
         let rpc req = do
-              x <- req
-              emit req_e x
+              newreq <- req
+              emit req_e newreq
               yield -- previous command response
-              emit req_e x
+              emit req_e newreq
               yield -- our response
 
-        let putResp o r = do
+        let putResp e r = do
               arrayMap $ \ix -> do
                 when (fromIx ix <? 2) $ do
                   val <- deref ((r ~> rx_buf) ! ix)
                   --putc o (48 + (castWith 0 $ fromIx $ ix))
                   comment "drv put"
-                  putc o val
+                  putc e val
 
         comment "Initialization routine"
         comment "Loop until register changes responding to our write or we reach retries"
@@ -197,7 +196,7 @@ app tocc totestspi touart toleds = do
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
-  (buffered_ostream, istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
+  (buffered_ostream, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
   monitor "uart" mon
   -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
@@ -230,7 +229,6 @@ app tocc totestspi touart toleds = do
   periodic <- period (Milliseconds 500)
 
   monitor "simplecontroller" $ do
-    write <- stateInit "write" (ival true)
     handler systemInit "init" $ do
       callback $ const $ do
         ledSetup $ redLED leds

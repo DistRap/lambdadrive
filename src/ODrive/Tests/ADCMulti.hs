@@ -32,7 +32,7 @@ import ODrive.Control.SVM
 import ODrive.Control.Transform
 import ODrive.LED
 import ODrive.DRV8301
-import ODrive.Tests.PWM hiding (uartTestTypes)
+import ODrive.Tests.PWM
 import ODrive.Utils
 import ODrive.Serialize
 
@@ -123,8 +123,6 @@ adcMultiTower (
               pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
               pc <- fmap phaseCurrentFromADC $ deref adc_phase_c
 
-              t <- getTime
-
               meas <- local $ istruct
                 [ vbus .= ival bus
                 , phase_b .= ival pb
@@ -144,7 +142,7 @@ adcMultiTower (
               return $ constRef meas
 
         -- handle adc reading from ADC, toggle between t1cc4 and t1trgo
-        let handleADC ADC{..} isInjected = do
+        let handleADC ADC{..} _isInjected = do
               val <- deref adc_last_injected
 
               cr2 <- getReg $ adcRegCR2 adcPeriph
@@ -185,8 +183,8 @@ adcMultiTower (
                 ]
 
         -- check which ADC fired
-        let checkADC a@ADC{..} = do
-              let ADCPeriph{..} = adcPeriph
+        let checkADC adc = do
+              let ADCPeriph{..} = adcPeriph adc
 
               sr <- getReg adcRegSR
 
@@ -196,7 +194,7 @@ adcMultiTower (
 
                 store adc_last_regular (toRep (dr #. adc_dr_data))
 
-                handleADC a false
+                handleADC adc false
 
                 modifyReg adcRegSR $ do
                   clearBit adc_sr_strt
@@ -208,7 +206,7 @@ adcMultiTower (
 
                 store adc_last_injected (toRep (jdr1 #. adc_jdr1_data))
 
-                handleADC a true
+                handleADC adc true
 
                 comment "clear interrupt flags in status register"
                 modifyReg adcRegSR $ do
@@ -301,7 +299,7 @@ app tocc  totestadcs totestpwm touart toleds = do
 
   adcs <- fmap totestadcs getEnv
   pwm  <- fmap totestpwm getEnv
-  leds <- fmap toleds getEnv
+  _leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
   (uarto, _uarti, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200

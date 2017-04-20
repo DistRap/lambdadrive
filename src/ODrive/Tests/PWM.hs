@@ -150,7 +150,7 @@ app tocc totestpwm touart toleds = do
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
-  (buffered_ostream, istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
+  (buffered_ostream, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
   monitor "dma" mon
   -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
@@ -162,7 +162,6 @@ app tocc totestpwm touart toleds = do
   periodic <- period (Milliseconds 500)
 
   monitor "simplecontroller" $ do
-    write <- stateInit "write" (ival true)
     handler systemInit "init" $ do
       callback $ const $ do
         ledSetup $ redLED leds
