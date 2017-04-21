@@ -75,7 +75,7 @@ dccalSender :: Sender e ('Struct "dccal_sample")
 dccalSender = sampleSender 'D' (Proxy :: Proxy 8)
 
 encoderSender :: Sender e ('Struct "encoder_sample")
-encoderSender = sampleSender 'E' (Proxy :: Proxy 9)
+encoderSender = sampleSender 'E' (Proxy :: Proxy 17)
 
 svmSender :: Sender e ('Struct "svm_sample")
 svmSender = sampleSender 'S' (Proxy :: Proxy 16)

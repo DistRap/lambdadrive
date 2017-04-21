@@ -29,9 +29,11 @@ struct dccal_sample
   }
 
 struct encoder_sample
-  { encoder_count :: Stored Uint32
-  ; encoder_dir   :: Stored IBool
-  ; encoder_phase :: Stored IFloat
+  { encoder_count   :: Stored Sint32
+  ; encoder_dir     :: Stored IBool
+  ; encoder_phase   :: Stored IFloat
+  ; encoder_pll_pos :: Stored IFloat
+  ; encoder_pll_vel :: Stored IFloat
   }
 
 struct svm_sample
@@ -118,6 +120,8 @@ encoderSampleWrapper = wrapPackRep "encoder_sample" $
   [ packLabel encoder_count
   , packLabel encoder_dir
   , packLabel encoder_phase
+  , packLabel encoder_pll_pos
+  , packLabel encoder_pll_vel
   ]
 
 instance Packable ('Struct "encoder_sample") where

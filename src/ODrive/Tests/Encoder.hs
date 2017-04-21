@@ -12,6 +12,7 @@
 module ODrive.Tests.Encoder where
 
 import Ivory.Language
+import Ivory.Language.Cast
 import Ivory.Tower
 
 import Ivory.BSP.STM32.ClockConfig
@@ -53,7 +54,7 @@ app tocc totestenc touart toleds = do
   --let encoderCpr = 600*4 :: Uint16
   --
   -- 2400 pulses per mechanical revolution
-  let encoderCpr = 600*4 :: Uint32
+  let encoderCpr = 600*4 :: Sint32
   -- 7 is the number of rotor poles (magnets)
   -- XXX: should be configurable
   let elecRadPerEnc = 7 * 2 * pi * (1/(safeCast encoderCpr)) :: IFloat
@@ -61,16 +62,20 @@ app tocc totestenc touart toleds = do
   monitor "encoder" $ do
     lastSample <- state "lastSample"
 
-    encState <- stateInit "encState" (ival (0 :: Uint32))
+    encState <- stateInit "encState" (ival (0 :: Sint32))
 
     -- pll
     pllKp <- stateInit "pllkp" (ival (0 :: IFloat))
     pllKi <- stateInit "pllki" (ival (0 :: IFloat))
+    pllPosition <- stateInit "pllPosition" (ival (0 :: IFloat))
+    pllVelocity <- stateInit "pllVelocity" (ival (0 :: IFloat))
 
+    --dbg
     elp <- state "elp"
     edelta <- state "delta"
     enewstate <- state "newstate"
     erlp <- state "rlp"
+    edeltapos <- state "deltapos"
 
     handler systemInit "init" $ do
       callback $ const $ do
@@ -91,9 +96,13 @@ app tocc totestenc touart toleds = do
 
         encs <- deref encState
 
-        let delta = (safeCast count) - encs
-        let newstate :: Uint32
-            newstate = safeCast $ encs + delta
+         -- XXX: trickery from Sint32 -> Sint16
+         -- we look at bottom 16 bits only as the hardware counter is also
+         -- 32bit, this is exploited to get delta
+        let delta :: Sint16
+            delta = (twosComplementCast count) - (ivoryCast :: Sint32 -> Sint16) encs
+        let newstate :: Sint32
+            newstate = safeCast $ encs + (safeCast delta)
 
         store encState newstate
 
@@ -103,16 +112,39 @@ app tocc totestenc touart toleds = do
         let rotorPhase :: IFloat
             rotorPhase = (elecRadPerEnc * ph) .% (2*pi)
 
+        comment "predict current position"
+        pllpos <- deref pllPosition
+        pllvel <- deref pllVelocity
+        pllkp <- deref pllKp
+        pllki <- deref pllKi
+
+        let newpllpos = pllpos + (currentMeasPeriod cc) * pllvel
+
+        comment "discrete phase detector"
+        let deltaPos :: IFloat
+            deltaPos = safeCast $ newstate - (castWith 0 $ floorF newpllpos)
+
+        comment "feedback"
+        store pllPosition $ newpllpos + (currentMeasPeriod cc) * pllkp * deltaPos
+        store pllVelocity $ pllvel + (currentMeasPeriod cc) * pllki * deltaPos
+
         --dbg
         store enewstate newstate
         store elp ph
         store edelta delta
+        store edeltapos deltaPos
         store erlp rotorPhase
+
+        pllp <- deref pllPosition
+        pllv <- deref pllVelocity
 
         sample <- local $ istruct
           [ encoder_count .= ival newstate
           , encoder_dir .= ival dir
-          , encoder_phase .= ival rotorPhase]
+          , encoder_phase .= ival rotorPhase
+          , encoder_pll_pos .= ival pllp
+          , encoder_pll_vel .= ival pllv
+          ]
 
         refCopy lastSample sample
         emit e (constRef sample)
