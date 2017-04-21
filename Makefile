@@ -1,6 +1,7 @@
 #include ../stack.mk
 
 TARGET ?= /dev/odrive
+#TARGET ?= /dev/f4gdb
 IVORYFLAGS ?= --const-fold --verbose
 TESTS      := \
 	cansendrecv-test \

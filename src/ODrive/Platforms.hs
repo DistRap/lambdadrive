@@ -55,6 +55,7 @@ testPlatformParser = do
   p <- subsection "args" $ subsection "platform" string
   case map toUpper p of
     "ODRIVE"       -> result odrive
+    "CAN4DISCO"    -> result c4d
     _ -> fail ("no such platform " ++ p)
 
   where
@@ -234,24 +235,14 @@ odrive = TestPlatform
       { redLED   = LED gpio1 LED.ActiveHigh
       , greenLED = LED gpio2 LED.ActiveHigh
       }
--- f4 disco bridged
   , testplatform_uart = TestUART
-    { testUARTPeriph = F405.uart2
+    { testUARTPeriph = F405.uart1
     , testUARTPins = UARTPins
-        { uartPinTx = F405.pinA2
-        , uartPinRx = F405.pinA3
-        , uartPinAF = F405.gpio_af_uart2
+        { uartPinTx = F405.pinB6
+        , uartPinRx = F405.pinB7
+        , uartPinAF = F405.gpio_af_uart1
         }
     }
--- odrive via encoder 2
---  , testplatform_uart = TestUART
---    { testUARTPeriph = F405.uart1
---    , testUARTPins = UARTPins
---        { uartPinTx = F405.pinB6
---        , uartPinRx = F405.pinB7
---        , uartPinAF = F405.gpio_af_uart1
---        }
---    }
   , testplatform_spi = TestSPI
     { testSPIPeriph = F405.spi3
     , testSPIPins   = spi3_pins
@@ -273,6 +264,42 @@ odrive = TestPlatform
   , testplatform_stm32 = odriveSTMConfig 8
   }
 
+c4d :: TestPlatform
+c4d = TestPlatform
+  { testplatform_leds = ColoredLEDs
+      { redLED   = LED F405.pinD14 LED.ActiveHigh
+      , greenLED = LED F405.pinD15 LED.ActiveHigh
+      }
+  , testplatform_uart = TestUART
+    { testUARTPeriph = F405.uart2
+    , testUARTPins = UARTPins
+        { uartPinTx = F405.pinA2
+        , uartPinRx = F405.pinA3
+        , uartPinAF = F405.gpio_af_uart2
+        }
+    }
+  , testplatform_spi = TestSPI
+    { testSPIPeriph = F405.spi3
+    , testSPIPins   = spi3_pins
+    }
+  , testplatform_can = TestCAN
+      { testCAN = F405.can1
+      , testCANRX = F405.pinB8
+      , testCANTX = F405.pinB9
+      , testCANFilters = F405.canFilters
+      }
+  , testplatform_rng = F405.rng
+  , testplatform_enc = enc0
+  , testplatform_pwm = pwm0
+  , testplatform_adc1 = adc1
+  , testplatform_adc2 = adc2
+  , testplatform_adc3 = adc3
+  , testplatform_adcs = (adc1, adc2, adc3)
+
+  , testplatform_stm32 = odriveSTMConfig 8
+  }
+
+--- XXX: clock hackery, suggest upstream
 
 data Divs = Divs {
     div_hclk :: Integer
