@@ -31,6 +31,7 @@ app :: (e -> ClockConfig)
 app tocc totestenc touart toleds = do
   odriveTowerDeps
 
+  cc <- fmap tocc getEnv
   enc  <- fmap totestenc getEnv
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
@@ -62,10 +63,25 @@ app tocc totestenc touart toleds = do
 
     encState <- stateInit "encState" (ival (0 :: Uint32))
 
+    -- pll
+    pllKp <- stateInit "pllkp" (ival (0 :: IFloat))
+    pllKi <- stateInit "pllki" (ival (0 :: IFloat))
+
     elp <- state "elp"
     edelta <- state "delta"
     enewstate <- state "newstate"
     erlp <- state "rlp"
+
+    handler systemInit "init" $ do
+      callback $ const $ do
+        let bandwidth = 2000 :: IFloat
+        store pllKp (bandwidth * 2)
+        -- critically damped
+        kp <- deref pllKp
+        store pllKi (1/4 * kp ** 2)
+
+        -- check that we don't get problems with discrete time approximation
+        assert ((currentMeasPeriod cc) * kp <? 1.0)
 
     handler periodic "encCvt" $ do
       e <- emitter (fst encchan) 1

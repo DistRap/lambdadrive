@@ -229,6 +229,12 @@ drv8301M1 =  SPIDevice
 tim_period_clocks :: Uint16
 tim_period_clocks = 10192
 
+currentMeasPeriod :: ClockConfig -> IFloat
+currentMeasPeriod cc = (2 * (safeCast tim_period_clocks) / (fromIntegral pclkhz))
+  where
+    pclkbus = PClk2
+    pclkhz = clockPClkHz pclkbus cc
+
 odrive :: TestPlatform
 odrive = TestPlatform
   { testplatform_leds = ColoredLEDs
