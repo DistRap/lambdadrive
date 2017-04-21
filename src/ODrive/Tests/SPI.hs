@@ -9,21 +9,15 @@
 
 module ODrive.Tests.SPI where
 
-import Data.Char (ord)
-
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import Ivory.Tower.HAL.Bus.CAN
 import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.Bus.Sched
-import qualified Ivory.Tower.HAL.Bus.SchedAsync as Async
 
 import Ivory.BSP.STM32.ClockConfig
-import Ivory.BSP.STM32.Driver.CAN
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.SPI
-import Ivory.BSP.STM32.Peripheral.CAN.Filter
 import Ivory.BSP.STM32.Peripheral.SPI -- as SPI
 
 import ODrive.Platforms
@@ -129,7 +123,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan ostream dev = do
         let rpc req = do
               newreq <- req
               emit req_e newreq
-              yield -- previous command response
+              _ <- yield -- previous command response
               emit req_e newreq
               yield -- our response
 
@@ -195,6 +189,7 @@ app tocc totestspi touart toleds = do
   spi  <- fmap totestspi getEnv
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
+  blink (Milliseconds 1000) [redLED leds]
 
   (buffered_ostream, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
@@ -229,11 +224,6 @@ app tocc totestspi touart toleds = do
   periodic <- period (Milliseconds 500)
 
   monitor "simplecontroller" $ do
-    handler systemInit "init" $ do
-      callback $ const $ do
-        ledSetup $ redLED leds
-        ledSetup $ blueLED leds
-
     handler periodic "periodic" $ do
       o <- emitter ostream 64
       callback $ \_ -> do

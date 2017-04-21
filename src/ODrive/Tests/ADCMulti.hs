@@ -28,8 +28,6 @@ import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 import ODrive.Platforms
 import ODrive.Types
-import ODrive.Control.SVM
-import ODrive.Control.Transform
 import ODrive.LED
 import ODrive.DRV8301
 import ODrive.PWM
@@ -74,10 +72,7 @@ adcMultiTower (
   , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_})
   drv8301_dc_cal = do
 
-  towerModule odriveTypes
-  towerDepends odriveTypes
-
-  serializeTowerDeps
+  odriveTowerDeps
 
   adc_chan <- channel -- ADC readings (adc_sample struct)
   adc_dc_chan <- channel -- DC calibration measurements (dccal_sample struct)
@@ -295,7 +290,7 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc  totestadcs totestpwm touart toleds = do
-  serializeTowerDeps
+  odriveTowerDeps
 
   adcs <- fmap totestadcs getEnv
   pwm  <- fmap totestpwm getEnv

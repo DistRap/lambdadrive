@@ -64,7 +64,7 @@ app tocc totestcan touart toleds = do
 
   (buffered_ostream, istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
-  monitor "dma" mon
+  monitor "uart" mon
   -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
   -- this monitor manage periodically flushing a buffer.
   ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
@@ -84,14 +84,14 @@ app tocc totestcan touart toleds = do
                       [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID]
                       []
         ledSetup $ redLED leds
-        ledSetup $ blueLED leds
+        ledSetup $ greenLED leds
 
     received <- stateInit "can_received_count" (ival (0 :: Uint32))
 
     handler res "result" $ do
       o <- emitter ostream 64
       callback $ \msg -> do
-        --(ledOn  $ blueLED leds)
+        --(ledOn  $ greenLED leds)
         count <- deref received
         store received (count + 1)
         puts o "\n\rrcv\n\r"
@@ -104,8 +104,8 @@ app tocc totestcan touart toleds = do
         puts o "\n\r/rcv\n\r"
 
         ifte_ (count .& 1 ==? 1)
-          (ledOff $ blueLED leds)
-          (ledOn  $ blueLED leds)
+          (ledOff $ greenLED leds)
+          (ledOn  $ greenLED leds)
 
 echoPrompt :: String
            -> ChanInput  ('Stored Uint8)

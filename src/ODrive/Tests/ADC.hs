@@ -11,7 +11,6 @@
 module ODrive.Tests.ADC where
 
 import Ivory.Language
-import Ivory.Stdlib
 import Ivory.HW
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
@@ -20,7 +19,6 @@ import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Peripheral.ADC
-import Ivory.BSP.STM32.Peripheral.ATIM18
 import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
@@ -131,24 +129,21 @@ app tocc  totestadc totestpwm touart toleds = do
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
+  blink (Milliseconds 1000) [redLED leds]
+
   (buffered_ostream, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
-  monitor "dma" mon
+  monitor "uart" mon
   -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
   -- this monitor manage periodically flushing a buffer.
   ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
 
-  pwmTower pwm
+  _ <- pwmTower pwm
   adcTower adc
 
   periodic <- period (Milliseconds 500)
 
   monitor "simplecontroller" $ do
-    handler systemInit "init" $ do
-      callback $ const $ do
-        ledSetup $ redLED leds
-        ledSetup $ blueLED leds
-
     handler periodic "periodic" $ do
       o <- emitter ostream 64
       callback $ \_ -> do

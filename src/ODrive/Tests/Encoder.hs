@@ -13,7 +13,6 @@ module ODrive.Tests.Encoder where
 
 import Ivory.Language
 import Ivory.Tower
-import Ivory.Tower.HAL.Bus.Interface
 
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.UART
@@ -23,7 +22,6 @@ import ODrive.Platforms
 import ODrive.LED
 import ODrive.Types
 import ODrive.Serialize
-import ODrive.Utils
 
 app :: (e -> ClockConfig)
     -> (e -> Enc)

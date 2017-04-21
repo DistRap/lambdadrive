@@ -8,15 +8,12 @@
 module ODrive.Control.Transform where
 
 import Ivory.Language
-import Ivory.Stdlib
-
-import ODrive.Types
 
 clarke :: IFloat -> IFloat -> (IFloat, IFloat)
 clarke pb pc = (alpha, beta)
   where
     alpha = -pb - pc
-    beta  = (1.0 / sqrt 3) * (pb - pc)
+    beta  = (pb - pc) / (sqrt 3)
 
 parke :: IFloat -> IFloat -> IFloat -> (IFloat, IFloat)
 parke alpha beta theta = (d, q)

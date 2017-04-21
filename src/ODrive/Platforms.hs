@@ -64,8 +64,8 @@ testPlatformParser = do
 
 data ColoredLEDs =
   ColoredLEDs
-    { redLED  :: LED
-    , blueLED :: LED
+    { redLED   :: LED
+    , greenLED :: LED
     }
 
 data TestUART =
@@ -143,160 +143,6 @@ data TestPlatform =
 testplatform_clockconfig :: TestPlatform -> ClockConfig
 testplatform_clockconfig = stm32config_clock . testplatform_stm32
 
--- ODrive
---
---
--- GPIO1 PB2
--- GPIO2 PA5
--- GPIO3 PA4
--- GPIO4 PA3
---
--- === M0 ===
---
--- M0 AH PA8
--- M0 BH PA9
--- M0 CH PA10
---
--- M0 AL PB13
--- M0 BL PB14
--- M0 CL PB15
---
--- M0 ENC_A PB4
--- M0 ENC_B PB5
--- M0 ENC_Z PA15
---
--- M0 SO1 PC0
--- M0 SO2 PC1
---
--- M0 TEMP PC5
--- M0 DC_CAL PC9
---
--- M0 nCS PC13
---
--- === M1 ===
---
--- M1 AH PC6
--- M1 BH PC7
--- M1 CH PC8
---
--- M1 AL PA7
--- M1 BL PB0
--- M1 CL PB1
---
--- M1 ENC_A PB6
--- M1 ENC_B PB7
--- M1 ENC_Z PB3
---
--- M1 SO1 PC2
--- M1 SO2 PC3
---
--- M1 TEMP PA1
--- M1 DC_CAL PC15
--- M1 nCS PC14
---
--- SPI_SCK PC10
--- SPI_MISO PC11
--- SPI_MOSI PC12
--- XXX: is MISO/MOSI flipped?
---
--- EN_GATE PB12
--- nFAULT PD2
--- VBUS-S PA0
---
--- |AUX
--- AUX_L PB10
--- AUX_H PB11
--- AUX_V PA6
--- AUX_TEMP PC4
-
-
--- || Peripherals
--- |TIM2 (AUX)
--- PB10 TIM2_CH3
--- PB11 TIM2_CH4
---
--- |TIM3 (E0)
--- PB4 TIM3_CH1
--- PB5 TIM3_CH2
-
--- |TIM4 (E1)
--- PB6 TIM4_CH1
--- PB7 TIM4_CH2
---
--- |TIM1 (M0)
--- PA8  TIM1_CH1
--- PA9  TIM1_CH2
--- PA10 TIM1_CH3
--- PB13 TIM1_CH1N
--- PB14 TIM1_CH2N
--- PB15 TIM1_CH3N
---
--- |TIM8 (M1)
--- PC6  TIM8_CH1
--- PC7  TIM8_CH2
--- PC8  TIM8_CH3
--- PA7  TIM8_CH1N
--- PB0  TIM8_CH2N
--- PB1  TIM8_CH3N
---
--- |ADCs
--- PA0  ADC_IN0   VBUS_S
--- PA1  ADC_IN1   M1_TEMP
--- PA3  ADC_IN3   GPIO4
--- PA4  ADC_IN4   GPIO3
--- PA5  ADC_IN5   GPIO2
--- PA6  ADC_IN6   AUX_V
--- PC0  ADC_IN10  M0_SO1
--- PC1  ADC_IN11  M0_SO2
--- PC2  ADC_IN12  M1_SO1
--- PC3  ADC_IN13  M1_SO2
--- PC4  ADC_IN14  AUX_TEMP
--- PC5  ADC_IN15  M0_TEMP
---
--- ADCs - divider 4, 12 bit, 3 samples
--- ADC1 - sw start IN5 injected IN0 (VBUS_S)
---                              ^^ T1 CC4, rising
--- ADC2 - switches between injected IN10 (M0_SO1) and IN13 (M1_SO2)
--- ADC3 - switches between injected IN11 (M0_SO2) and IN12 (M1_SO1)
---      - both also switch to DC cals in the same manner ^^
---
--- M0 triggered on both ADCS by rising T1 CC4, then switches to T1 TRGO for DC cal
--- M1 triggered on both ADCS by rising T8 CC4, then switches to regular conversion for DC cal
---
--- M0_DC_CAL PC9
--- M1_DC_CAL PC1
---
--- rise = ADC_EXTERNALTRIGCONVEDGE_RISING = ADC_CR2_EXTEN_0 = 0x1
---
--- ADC2 interrupt comes first, followed by ADC3
---
--- if it's ADC2 -> phase B
--- else    ADC3 -> phase C
---
--- if CR2_EXTEN != ADC_EXTERNALTRIGCONVEDGE_NONE
--- -> M1 DC_CAL
---    reset M1_DC_CAL pin (next on M1 is current)
---    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_CC4 rise (next on ADC is M0 current)
---    if adc2 set ADC_IN10
---    if adc3 set ADC_IN11
--- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T1_CC4
--- -> M0 current
---    set M0_DC_CAL pin (next on M0 is DC_CAL)
---    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_CC8 rise (next on ADC is M1 current)
---    if adc2 set ADC_IN13
---    if adc3 set ADC_IN12
--- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T8_CC4
--- -> M1 current
---    set M1_DC_CAL pin (next on M1 is DC_CAL)
---    set CR2 ADC_EXTERNALTRIGINJECCONV_T1_TRGO rise (next on ADC is M0 DC_CAL)
---    if adc2 set ADC_IN10
---    if adc3 set ADC_IN11
--- else if CR2_JEXTSEL == ADC_EXTERNALTRIGINJECCONV_T1_TRGO
--- -> M0 DC_CAL
---    reset M0_DC_CAL pin (next on M0 is current)
---    clear CR2, set rise (next on ADC is M1 DC_CAL)
---    if adc2 set ADC_IN13
---    if adc3 set ADC_IN12
 
 adcint :: HasSTM32Interrupt
 adcint = HasSTM32Interrupt F405.ADC
@@ -385,8 +231,8 @@ tim_period_clocks = 10192
 odrive :: TestPlatform
 odrive = TestPlatform
   { testplatform_leds = ColoredLEDs
-      { redLED  = LED gpio1 LED.ActiveHigh
-      , blueLED = LED gpio2 LED.ActiveHigh
+      { redLED   = LED gpio1 LED.ActiveHigh
+      , greenLED = LED gpio2 LED.ActiveHigh
       }
 -- f4 disco bridged
   , testplatform_uart = TestUART

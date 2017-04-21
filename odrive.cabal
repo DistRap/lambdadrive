@@ -29,7 +29,6 @@ library
                        --ODrive.Fixed
                        ODrive.Utils
                        ODrive.Tests.LED
-                       ODrive.Tests.Blink
                        ODrive.Tests.SPI
                        ODrive.Tests.Encoder
                        ODrive.Tests.PWM
