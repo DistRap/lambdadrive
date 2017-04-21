@@ -25,6 +25,14 @@ GDB := arm-none-eabi-gdb \
 .PHONY: test clean $(TESTS) $(AADL_TESTS) $(CLEANS)
 test: $(TESTS) $(AADL_TESTS)
 clean: $(CLEANS)
+	make -C schema clean
+
+# This target bootstraps Gidl if the generated packages do not exist
+# yet, then calls the default target to generate them.
+.PHONY: gidl-bootstrap
+gidl-bootstrap:
+	stack --stack-yaml=gidl-bootstrap.yaml install ../gidl --force-dirty || \
+	stack --stack-yaml=gidl-bootstrap.yaml install ./gidl --force-dirty
 
 define MKTEST
 $(1):

@@ -1,54 +1,31 @@
 # For more information, see: http://docs.haskellstack.org/en/stable/yaml_configuration.html
 
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-resolver: lts-8.9
+resolver: lts-8.5
 
 # Local packages, usually specified by relative directory name
 packages:
-- '.'
-- location: ../ivory-tower-stm32/
-  extra-dep: true
-  subdirs:
-    - ivory-bsp-stm32
-    - ivory-bsp-tests
-    - ivory-freertos-bindings
-    - tower-freertos-stm32
-    - tower-echronos-stm32
+- location: ../gidl/
 - location: ../ivory/
   extra-dep: true
   subdirs:
-    - ivory
     - ivory-artifact
-    - ivory-backend-c
-    - ivory-hw
-    - ivory-opts
-    - ivory-serialize
-    - ivory-stdlib
-- location: ../tower/
-  extra-dep: true
-  subdirs:
-    - tower
-    - tower-config
-    - tower-hal
-    - tower-aadl
-- location: ../ivory-tower-posix/
-  extra-dep: true
-- location: ../ivory-tower-hxstream/
-  extra-dep: true
-- location: ./schema/
-  extra-dep: true
-  subdirs:
-    - odrive-schema-native
-    - odrive-schema-tower
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+  - s-cargot-0.1.0.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
 
 # Extra package databases containing global packages
 extra-package-dbs: []
+
+# Download GHC automatically
+install-ghc: true
+
+# Control whether we use the GHC we find on the path
+# system-ghc: true
 
 # Require a specific version of stack, using version ranges
 # require-stack-version: -any # Default

@@ -23,6 +23,7 @@ import ODrive.Platforms
 import ODrive.LED
 import ODrive.Types
 import ODrive.Serialize
+import ODrive.Ivory.Types.Encoder
 
 app :: (e -> ClockConfig)
     -> (e -> Enc)
@@ -38,6 +39,7 @@ app tocc totestenc touart toleds = do
   uart <- fmap touart getEnv
 
   blink (Milliseconds 1000) [redLED leds]
+  blink (Milliseconds 666) [greenLED leds]
 
   (uarto, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
@@ -91,8 +93,8 @@ app tocc totestenc touart toleds = do
     handler periodic "encCvt" $ do
       e <- emitter (fst encchan) 1
       callback $ const $ do
-        count <- encoder_get_count
-        dir <- encoder_get_dir
+        enccount <- encoder_get_count
+        encdir <- encoder_get_dir
 
         encs <- deref encState
 
@@ -100,7 +102,7 @@ app tocc totestenc touart toleds = do
          -- we look at bottom 16 bits only as the hardware counter is also
          -- 32bit, this is exploited to get delta
         let delta :: Sint16
-            delta = (twosComplementCast count) - (ivoryCast :: Sint32 -> Sint16) encs
+            delta = (twosComplementCast enccount) - (ivoryCast :: Sint32 -> Sint16) encs
         let newstate :: Sint32
             newstate = safeCast $ encs + (safeCast delta)
 
@@ -139,11 +141,11 @@ app tocc totestenc touart toleds = do
         pllv <- deref pllVelocity
 
         sample <- local $ istruct
-          [ encoder_count .= ival newstate
-          , encoder_dir .= ival dir
-          , encoder_phase .= ival rotorPhase
-          , encoder_pll_pos .= ival pllp
-          , encoder_pll_vel .= ival pllv
+          [ count .= ival newstate
+          , dir .= ival encdir
+          , phase .= ival rotorPhase
+          , pll_pos .= ival pllp
+          , pll_vel .= ival pllv
           ]
 
         refCopy lastSample sample

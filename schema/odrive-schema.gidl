@@ -1,0 +1,31 @@
+(def-struct adc_t
+  (vbus    float_t)
+  (phase_b float_t)
+  (phase_c float_t))
+
+(def-struct dccal_t
+  (dccal_b float_t)
+  (dccal_c float_t))
+
+(def-struct encoder_t
+  (count   sint32_t)
+  (dir     bool_t)
+  (phase   float_t)
+  (pll_pos float_t)
+  (pll_vel float_t))
+
+(def-struct svm_t
+  (a       float_t)
+  (b       float_t)
+  (c       float_t)
+  (sextant float_t))
+
+(def-struct state_t
+  (adc     adc_t)
+  (dccal   dccal_t)
+  (encoder encoder_t)
+  (svm     svm_t))
+
+(def-interface motor_i ()
+  (heartbeat (stream state_t))
+  (adc_sample (attr readwrite adc_t)))

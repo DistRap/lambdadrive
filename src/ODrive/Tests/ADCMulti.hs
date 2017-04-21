@@ -30,6 +30,8 @@ import ODrive.LED
 import ODrive.PWM
 import ODrive.Utils
 import ODrive.Serialize
+import ODrive.Ivory.Types.Adc
+import ODrive.Ivory.Types.Dccal
 
 phaseCurrentFromADC :: Uint16 -> IFloat
 phaseCurrentFromADC val = current $ shunt_volt $ amp_out_volt $ adcval_bal val
@@ -62,7 +64,7 @@ setJExt ADCPeriph{..} jextsel = modifyReg adcRegCR2 $ setField adc_cr2_jextsel j
 
 adcMultiTower :: (ADC, ADC, ADC)
               -> GPIOPin
-              -> Tower e (ChanOutput ('Struct "adc_sample"), ChanOutput ('Struct "dccal_sample"))
+              -> Tower e (ChanOutput ('Struct "adc"), ChanOutput ('Struct "dccal"))
 adcMultiTower (
     a1@ADC {adcPeriph=adcp1, adcChan=chan1, adcInjChan=ichan1, adcInt=int}
   , a2@ADC {adcPeriph=adcp2, adcChan=chan2, adcInjChan=ichan2, adcInt=_}
@@ -71,8 +73,8 @@ adcMultiTower (
 
   odriveTowerDeps
 
-  adc_chan <- channel -- ADC readings (adc_sample struct)
-  adc_dc_chan <- channel -- DC calibration measurements (dccal_sample struct)
+  adc_chan <- channel -- ADC readings (adc struct)
+  adc_dc_chan <- channel -- DC calibration measurements (dccal struct)
 
   isr <- signalUnsafe
             (Interrupt int)
@@ -109,7 +111,7 @@ adcMultiTower (
         -- if source is TRGO we're measuring DC_CAL at SVM vector 7
         --
         -- populate adc_meas struct with current values
-        let mkMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "adc_sample"))
+        let mkMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "adc"))
             mkMeas = do
               bus <- fmap vbusVoltageFromADC $ deref adc_vbus
               pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
@@ -122,7 +124,7 @@ adcMultiTower (
 
               return $ constRef meas
 
-        let mkDCCalMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "dccal_sample"))
+        let mkDCCalMeas :: forall s eff . (GetAlloc eff ~ 'Scope s) => Ivory eff (ConstRef ('Stack s) ('Struct "dccal"))
             mkDCCalMeas = do
               pb <- fmap phaseCurrentFromADC $ deref adc_phase_b
               pc <- fmap phaseCurrentFromADC $ deref adc_phase_c

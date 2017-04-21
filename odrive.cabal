@@ -46,6 +46,7 @@ library
                        tower-config,
                        tower-hal,
                        tower-freertos-stm32 >= 0.9,
+                       odrive-schema-tower,
                        ivory-bsp-stm32
 
   default-language:    Haskell2010

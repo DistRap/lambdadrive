@@ -11,14 +11,14 @@ module ODrive.Control.SVM where
 import Ivory.Language
 import Ivory.Stdlib
 
-import ODrive.Types
+import ODrive.Ivory.Types.Svm
 
 -- space vector modulation
 -- generates phase modulations from alpha and beta
 svm :: forall s eff . (GetAlloc eff ~ 'Scope s)
     => IFloat
     -> IFloat
-    -> Ivory eff (ConstRef ('Stack s) ('Struct "svm_sample"))
+    -> Ivory eff (ConstRef ('Stack s) ('Struct "svm"))
 svm alpha beta = do
   let obs3 = 1 / sqrt 3
   let tbs3 = 2 / sqrt 3
@@ -26,37 +26,37 @@ svm alpha beta = do
 
   out <- local $ istruct []
 
-  let storesvm a b c = do
-        store (out ~> svm_a) a
-        store (out ~> svm_b) b
-        store (out ~> svm_c) c
+  let storesvm aval bval cval = do
+        store (out ~> a) aval
+        store (out ~> b) bval
+        store (out ~> c) cval
 
   ifte_ (beta >=? 0)
     (ifte_ (alpha >=? 0)
       (ifte_ (beta1sq3 >? alpha)
-        (store (out ~> svm_sextant) 2)
-        (store (out ~> svm_sextant) 1)
+        (store (out ~> sextant) 2)
+        (store (out ~> sextant) 1)
       )
       (ifte_ (-beta1sq3 >? alpha)
-        (store (out ~> svm_sextant) 3)
-        (store (out ~> svm_sextant) 2)
+        (store (out ~> sextant) 3)
+        (store (out ~> sextant) 2)
       )
     )
     (ifte_ (alpha >=? 0)
       (ifte_ (-beta1sq3 >? alpha)
-        (store (out ~> svm_sextant) 5)
-        (store (out ~> svm_sextant) 6)
+        (store (out ~> sextant) 5)
+        (store (out ~> sextant) 6)
       )
       (ifte_ (beta1sq3 >? alpha)
-        (store (out ~> svm_sextant) 4)
-        (store (out ~> svm_sextant) 5)
+        (store (out ~> sextant) 4)
+        (store (out ~> sextant) 5)
       )
     )
 
-  sextant <- deref (out ~> svm_sextant)
+  sx <- deref (out ~> sextant)
 
   cond_ [
-    sextant ==? 1 ==> do
+    sx ==? 1 ==> do
         -- sextant v1-v2
         let t1 = alpha - obs3 * beta
         let t2 = tbs3 * beta
@@ -67,7 +67,7 @@ svm alpha beta = do
 
         storesvm tA tB tC
 
-    , sextant ==? 2 ==> do
+    , sx ==? 2 ==> do
         -- sextant v2-v3
         let t2 =  alpha + obs3 * beta
         let t3 = -alpha + obs3 * beta
@@ -78,7 +78,7 @@ svm alpha beta = do
 
         storesvm tA tB tC
 
-    , sextant ==? 3 ==> do
+    , sx ==? 3 ==> do
         -- sextant v3-v4
         let t3 = tbs3 * beta
         let t4 = -alpha - obs3 * beta
@@ -89,7 +89,7 @@ svm alpha beta = do
 
         storesvm tA tB tC
 
-    , sextant ==? 4 ==> do
+    , sx ==? 4 ==> do
         -- sextant v4-v5
         let t4 = -alpha + obs3 * beta
         let t5 = -tbs3 * beta
@@ -100,7 +100,7 @@ svm alpha beta = do
 
         storesvm tA tB tC
 
-    , sextant ==? 5 ==> do
+    , sx ==? 5 ==> do
         -- sextant v5-v6
         let t5 = -alpha - obs3 * beta
         let t6 = alpha - obs3 * beta
@@ -111,7 +111,7 @@ svm alpha beta = do
 
         storesvm tA tB tC
 
-    , sextant ==? 6 ==> do
+    , sx ==? 6 ==> do
         -- sextant v6-v1
         let t6 = -tbs3 * beta
         let t1 = alpha + obs3 * beta

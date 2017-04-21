@@ -235,6 +235,12 @@ currentMeasPeriod cc = (2 * (safeCast tim_period_clocks) / (fromIntegral pclkhz)
     pclkbus = PClk2
     pclkhz = clockPClkHz pclkbus cc
 
+currentMeasHz :: ClockConfig -> IFloat
+currentMeasHz cc = (fromIntegral pclkhz) / (safeCast $ 2 * tim_period_clocks)
+  where
+    pclkbus = PClk2
+    pclkhz = clockPClkHz pclkbus cc
+
 odrive :: TestPlatform
 odrive = TestPlatform
   { testplatform_leds = ColoredLEDs

@@ -15,6 +15,7 @@ import Ivory.Language
 import Ivory.HW
 import Ivory.Tower
 import ODrive.Platforms
+import ODrive.Ivory.Types.Encoder
 
 import Ivory.BSP.STM32.Peripheral.GTIM2345
 import Ivory.BSP.STM32.Peripheral.GPIOF4
@@ -32,8 +33,8 @@ encoderTower (EncTimer {encTim=tim@GTIM {..}, encChan1=c1, encChan2=c2, encAf=af
   monitor "encoder_capture" $ do
     monitorModuleDef $ hw_moduledef
 
-    count <- stateInit "count" (ival (0 :: Uint16))
-    dir <- state "dir" -- IBool
+    enccount <- stateInit "count" (ival (0 :: Uint16))
+    encdir <- state "dir" -- IBool
 
     handler systemInit "init" $ do
       callback $ const $ do
@@ -44,10 +45,10 @@ encoderTower (EncTimer {encTim=tim@GTIM {..}, encChan1=c1, encChan2=c2, encAf=af
     handler periodic "periodic" $ do
       callback $ \_ -> do
         cnt <- encoderGetCount tim
-        store count cnt
+        store enccount cnt
 
         d <- encoderGetDir tim
-        store dir d
+        store encdir d
 
   return $ Encoder (encoderGetCount tim) (encoderGetDir tim)
 

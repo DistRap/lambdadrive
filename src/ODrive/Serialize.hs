@@ -68,14 +68,14 @@ sampleSender tag len c out = do
       HX.encodeString (fromIntegral $ ord tag) (constRef buf) str
       emit e $ constRef str
 
-adcSender :: Sender e ('Struct "adc_sample")
+adcSender :: Sender e ('Struct "adc")
 adcSender = sampleSender 'A' (Proxy :: Proxy 12)
 
-dccalSender :: Sender e ('Struct "dccal_sample")
+dccalSender :: Sender e ('Struct "dccal")
 dccalSender = sampleSender 'D' (Proxy :: Proxy 8)
 
-encoderSender :: Sender e ('Struct "encoder_sample")
+encoderSender :: Sender e ('Struct "encoder")
 encoderSender = sampleSender 'E' (Proxy :: Proxy 17)
 
-svmSender :: Sender e ('Struct "svm_sample")
+svmSender :: Sender e ('Struct "svm")
 svmSender = sampleSender 'S' (Proxy :: Proxy 16)

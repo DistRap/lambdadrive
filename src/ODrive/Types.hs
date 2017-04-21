@@ -9,40 +9,20 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module ODrive.Types where
+module ODrive.Types
+  ( fconstrain
+  , odriveTypes
+  , odriveTowerDeps
+  , uartTestTypes
+  , UARTBuffer
+  ) where
 
 import Ivory.Language
 import Ivory.HW
 import Ivory.Tower
 import Ivory.Serialize
 
-[ivory|
-struct adc_sample
-  { vbus    :: Stored IFloat
-  ; phase_b :: Stored IFloat
-  ; phase_c :: Stored IFloat
-  }
-
-struct dccal_sample
-  { dccal_b :: Stored IFloat
-  ; dccal_c :: Stored IFloat
-  }
-
-struct encoder_sample
-  { encoder_count   :: Stored Sint32
-  ; encoder_dir     :: Stored IBool
-  ; encoder_phase   :: Stored IFloat
-  ; encoder_pll_pos :: Stored IFloat
-  ; encoder_pll_vel :: Stored IFloat
-  }
-
-struct svm_sample
-  { svm_a :: Stored IFloat
-  ; svm_b :: Stored IFloat
-  ; svm_c :: Stored IFloat
-  ; svm_sextant :: Stored IFloat
-  }
-|]
+import ODrive.Ivory.Types
 
 [ivory| string struct UARTBuffer 128 |]
 
@@ -70,71 +50,20 @@ odriveTypes = package "odrive_types" $ do
   incl fconstrain
   hw_moduledef
 
-  defStruct (Proxy :: Proxy "adc_sample")
-  defStruct (Proxy :: Proxy "dccal_sample")
-  defStruct (Proxy :: Proxy "encoder_sample")
-  defStruct (Proxy :: Proxy "svm_sample")
-
   defStringType (Proxy :: Proxy UARTBuffer)
 
   depend serializeModule
+  mapM_ depend typeModules
 
-  wrappedPackMod svmSampleWrapper
-  wrappedPackMod adcSampleWrapper
-  wrappedPackMod encoderSampleWrapper
-  wrappedPackMod dccalSampleWrapper
 
 odriveTowerDeps :: Tower e ()
 odriveTowerDeps = do
   towerDepends odriveTypes
   towerModule odriveTypes
 
+  mapM_ towerDepends typeModules
+  mapM_ towerModule typeModules
+
   towerDepends serializeModule
   towerModule  serializeModule
   mapM_ towerArtifact serializeArtifacts
-
-adcSampleWrapper :: WrappedPackRep ('Struct "adc_sample")
-adcSampleWrapper = wrapPackRep "adc_sample" $
-  packStruct
-  [ packLabel vbus
-  , packLabel phase_b
-  , packLabel phase_c
-  ]
-
-instance Packable ('Struct "adc_sample") where
-  packRep = wrappedPackRep adcSampleWrapper
-
-dccalSampleWrapper :: WrappedPackRep ('Struct "dccal_sample")
-dccalSampleWrapper = wrapPackRep "dccal_sample" $
-  packStruct
-  [ packLabel dccal_b
-  , packLabel dccal_c
-  ]
-
-instance Packable ('Struct "dccal_sample") where
-  packRep = wrappedPackRep dccalSampleWrapper
-
-encoderSampleWrapper :: WrappedPackRep ('Struct "encoder_sample")
-encoderSampleWrapper = wrapPackRep "encoder_sample" $
-  packStruct
-  [ packLabel encoder_count
-  , packLabel encoder_dir
-  , packLabel encoder_phase
-  , packLabel encoder_pll_pos
-  , packLabel encoder_pll_vel
-  ]
-
-instance Packable ('Struct "encoder_sample") where
-  packRep = wrappedPackRep encoderSampleWrapper
-
-svmSampleWrapper :: WrappedPackRep ('Struct "svm_sample")
-svmSampleWrapper = wrapPackRep "svm_sample" $
-  packStruct
-  [ packLabel svm_a
-  , packLabel svm_b
-  , packLabel svm_c
-  , packLabel svm_sextant
-  ]
-
-instance Packable ('Struct "svm_sample") where
-  packRep = wrappedPackRep svmSampleWrapper
