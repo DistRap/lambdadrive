@@ -110,7 +110,7 @@ data Enc = EncTimer {
     , encAf     :: GPIO_AF
     }
 
-data PWM = PWMTimer {
+data PWMOut = PWMTimer {
       pwmTim  :: F405.ATIM
     , pwmC1   :: GPIOPin
     , pwmC2   :: GPIOPin
@@ -119,6 +119,7 @@ data PWM = PWMTimer {
     , pwmC2N  :: GPIOPin
     , pwmC3N  :: GPIOPin
     , pwmAf   :: GPIO_AF
+    , pwmInit :: Uint16
     }
 
 type ADCs = (ADC, ADC, ADC)
@@ -132,7 +133,7 @@ data TestPlatform =
     , testplatform_rng   :: RNG
     , testplatform_stm32 :: STM32Config
     , testplatform_enc   :: Enc
-    , testplatform_pwm   :: PWM
+    , testplatform_pwm   :: PWMOut
     , testplatform_adc1  :: ADC
     , testplatform_adc2  :: ADC
     , testplatform_adc3  :: ADC
@@ -341,17 +342,17 @@ enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
 enc1 :: Enc
 enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 
-pwm0 :: PWM
+pwm0 :: PWMOut
 pwm0 = PWMTimer F405.tim1
     F405.pinA8 F405.pinA9 F405.pinA10
     F405.pinB13 F405.pinB14 F405.pinB15
-    F405.gpio_af_tim1
+    F405.gpio_af_tim1 0
 
-pwm1 :: PWM
+pwm1 :: PWMOut
 pwm1 = PWMTimer F405.tim8
     F405.pinC6 F405.pinC7 F405.pinC8
     F405.pinA7 F405.pinB0 F405.pinB1
-    F405.gpio_af_tim8
+    F405.gpio_af_tim8 0
 
 drv8301M0 :: SPIDevice
 drv8301M0 =  SPIDevice
@@ -376,6 +377,10 @@ drv8301M1 =  SPIDevice
     , spiDevBitOrder      = MSBFirst
     , spiDevName          = "drv8301m1"
     }
+
+
+tim_period_clocks :: Uint16
+tim_period_clocks = 10192
 
 odrive :: TestPlatform
 odrive = TestPlatform

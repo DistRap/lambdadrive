@@ -20,6 +20,7 @@ library
                        ODrive.LED
                        ODrive.Control.SVM
                        ODrive.Control.Transform
+                       ODrive.PWM
                        ODrive.Types
                        ODrive.DRV8301
                        ODrive.DRV8301.Regs

@@ -32,7 +32,7 @@ import ODrive.Control.SVM
 import ODrive.Control.Transform
 import ODrive.LED
 import ODrive.DRV8301
-import ODrive.Tests.PWM
+import ODrive.PWM
 import ODrive.Utils
 import ODrive.Serialize
 
@@ -290,7 +290,7 @@ adc_in_pin p = do
 
 app :: (e -> ClockConfig)
     -> (e -> ADCs)
-    -> (e -> PWM)
+    -> (e -> PWMOut)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()

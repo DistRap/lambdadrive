@@ -25,7 +25,7 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import ODrive.Platforms
 import ODrive.LED
-import ODrive.Tests.PWM
+import ODrive.PWM
 import ODrive.Types
 import ODrive.Utils
 
@@ -118,7 +118,7 @@ adc_in_pin p = do
 
 app :: (e -> ClockConfig)
     -> (e -> ADC)
-    -> (e -> PWM)
+    -> (e -> PWMOut)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()
