@@ -17,9 +17,7 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.HW
 import Ivory.Tower
-import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.Bus.Sched
-import Ivory.Serialize
 
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.ClockConfig
@@ -29,7 +27,6 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 import ODrive.Platforms
 import ODrive.Types
 import ODrive.LED
-import ODrive.DRV8301
 import ODrive.PWM
 import ODrive.Utils
 import ODrive.Serialize
@@ -294,13 +291,15 @@ app tocc  totestadcs totestpwm touart toleds = do
 
   adcs <- fmap totestadcs getEnv
   pwm  <- fmap totestpwm getEnv
-  _leds <- fmap toleds getEnv
+  leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
+
+  blink (Milliseconds 1000) [redLED leds]
 
   (uarto, _uarti, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
   monitor "uart" mon
 
-  pwmTower pwm
+  _ <- pwmTower pwm
   (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal
 
   debugTower gpio1 adc_chan
