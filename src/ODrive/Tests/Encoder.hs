@@ -22,6 +22,7 @@ import ODrive.Encoder
 import ODrive.Platforms
 import ODrive.LED
 import ODrive.Types
+import ODrive.Serialize
 import ODrive.Utils
 
 app :: (e -> ClockConfig)
@@ -36,27 +37,71 @@ app tocc totestenc touart toleds = do
   leds <- fmap toleds getEnv
   uart <- fmap touart getEnv
 
-  (buffered_ostream, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
+  blink (Milliseconds 1000) [redLED leds]
+
+  (uarto, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
 
   monitor "uart" mon
-  -- UART buffer transmits in buffers. We want to transmit byte-by-byte and let
-  -- this monitor manage periodically flushing a buffer.
-  ostream <- uartUnbuffer (buffered_ostream :: BackpressureTransmit UARTBuffer ('Stored IBool))
 
   Encoder{..} <- encoderTower enc
 
-  periodic <- period (Milliseconds 500)
+  periodic <- period (Milliseconds 10)
 
-  monitor "simplecontroller" $ do
-    x <- state "x"
-    handler systemInit "init" $ do
+  encchan <- channel
+
+  -- XXX measure offset
+  let encoderOffset = 179 :: IFloat
+  --let encoderCpr = 600*4 :: Uint16
+  --
+  -- 2400 pulses per mechanical revolution
+  let encoderCpr = 600*4 :: Uint32
+  -- 7 is the number of rotor poles (magnets)
+  -- XXX: should be configurable
+  let elecRadPerEnc = 7 * 2 * pi * (1/(safeCast encoderCpr)) :: IFloat
+
+  monitor "encoder" $ do
+    lastSample <- state "lastSample"
+
+    encState <- stateInit "encState" (ival (0 :: Uint32))
+
+    elp <- state "elp"
+    edelta <- state "delta"
+    enewstate <- state "newstate"
+    erlp <- state "rlp"
+
+    handler periodic "encCvt" $ do
+      e <- emitter (fst encchan) 1
       callback $ const $ do
-        ledSetup $ redLED leds
-        ledSetup $ blueLED leds
+        count <- encoder_get_count
+        dir <- encoder_get_dir
 
-    handler periodic "periodic" $ do
-      o <- emitter ostream 64
-      callback $ \_ -> do
-        val <- encoder_get_count
-        store x val
-        puts o "q"
+        encs <- deref encState
+
+        let delta = (safeCast count) - encs
+        let newstate :: Uint32
+            newstate = safeCast $ encs + delta
+
+        store encState newstate
+
+        let ph :: IFloat
+            ph = safeCast (newstate .% encoderCpr) - encoderOffset
+
+        let rotorPhase :: IFloat
+            rotorPhase = (elecRadPerEnc * ph) .% (2*pi)
+
+        --dbg
+        store enewstate newstate
+        store elp ph
+        store edelta delta
+        store erlp rotorPhase
+
+        sample <- local $ istruct
+          [ encoder_count .= ival newstate
+          , encoder_dir .= ival dir
+          , encoder_phase .= ival rotorPhase]
+
+        refCopy lastSample sample
+        emit e (constRef sample)
+
+  monitor "encoderSender" $ do
+    encoderSender (snd encchan) uarto

@@ -12,6 +12,7 @@
 module ODrive.Types where
 
 import Ivory.Language
+import Ivory.HW
 import Ivory.Tower
 import Ivory.Serialize
 
@@ -27,6 +28,12 @@ struct dccal_sample
   ; dccal_c :: Stored IFloat
   }
 
+struct encoder_sample
+  { encoder_count :: Stored Uint32
+  ; encoder_dir   :: Stored IBool
+  ; encoder_phase :: Stored IFloat
+  }
+
 struct svm_sample
   { svm_a :: Stored IFloat
   ; svm_b :: Stored IFloat
@@ -36,6 +43,10 @@ struct svm_sample
 |]
 
 [ivory| string struct UARTBuffer 128 |]
+
+-- XXX: this is supported by the backend correctly generating
+-- fmodf for .% on IFloats, suggest to upstream
+instance IvoryIntegral IFloat
 
 uartTestTypes :: Module
 uartTestTypes = package "uartTestTypes" $ do
@@ -55,9 +66,11 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
 odriveTypes :: Module
 odriveTypes = package "odrive_types" $ do
   incl fconstrain
+  hw_moduledef
 
   defStruct (Proxy :: Proxy "adc_sample")
   defStruct (Proxy :: Proxy "dccal_sample")
+  defStruct (Proxy :: Proxy "encoder_sample")
   defStruct (Proxy :: Proxy "svm_sample")
 
   defStringType (Proxy :: Proxy UARTBuffer)
@@ -66,6 +79,7 @@ odriveTypes = package "odrive_types" $ do
 
   wrappedPackMod svmSampleWrapper
   wrappedPackMod adcSampleWrapper
+  wrappedPackMod encoderSampleWrapper
   wrappedPackMod dccalSampleWrapper
 
 odriveTowerDeps :: Tower e ()
@@ -97,6 +111,17 @@ dccalSampleWrapper = wrapPackRep "dccal_sample" $
 
 instance Packable ('Struct "dccal_sample") where
   packRep = wrappedPackRep dccalSampleWrapper
+
+encoderSampleWrapper :: WrappedPackRep ('Struct "encoder_sample")
+encoderSampleWrapper = wrapPackRep "encoder_sample" $
+  packStruct
+  [ packLabel encoder_count
+  , packLabel encoder_dir
+  , packLabel encoder_phase
+  ]
+
+instance Packable ('Struct "encoder_sample") where
+  packRep = wrappedPackRep encoderSampleWrapper
 
 svmSampleWrapper :: WrappedPackRep ('Struct "svm_sample")
 svmSampleWrapper = wrapPackRep "svm_sample" $

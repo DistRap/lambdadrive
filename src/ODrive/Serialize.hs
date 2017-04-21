@@ -4,6 +4,7 @@
 module ODrive.Serialize
   ( adcSender
   , dccalSender
+  , encoderSender
   , svmSender
   , sampleSender
   , Sender
@@ -72,6 +73,9 @@ adcSender = sampleSender 'A' (Proxy :: Proxy 12)
 
 dccalSender :: Sender e ('Struct "dccal_sample")
 dccalSender = sampleSender 'D' (Proxy :: Proxy 8)
+
+encoderSender :: Sender e ('Struct "encoder_sample")
+encoderSender = sampleSender 'E' (Proxy :: Proxy 9)
 
 svmSender :: Sender e ('Struct "svm_sample")
 svmSender = sampleSender 'S' (Proxy :: Proxy 16)
