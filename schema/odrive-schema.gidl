@@ -20,12 +20,27 @@
   (svm_c   float_t)
   (sextant float_t))
 
-(def-struct state_t
+(def-struct drv_fault_t
+  (fault               bool_t)
+  (gvdd_undervoltage   bool_t)
+  (gvdd_overvoltage    bool_t)
+  (pvdd_undervoltage   bool_t)
+  (overtemp_shutdown   bool_t)
+  (overtemp_warning    bool_t)
+  (fet_hi_a_overcurr   bool_t)
+  (fet_lo_a_overcurr   bool_t)
+  (fet_hi_b_overcurr   bool_t)
+  (fet_lo_b_overcurr   bool_t)
+  (fet_hi_c_overcurr   bool_t)
+  (fet_lo_c_overcurr   bool_t))
+
+(def-struct heartbeat_t
   (adc     adc_t)
   (dccal   dccal_t)
   (encoder encoder_t)
   (svm     svm_t))
 
 (def-interface motor_i ()
-  (heartbeat (stream state_t))
+  (heartbeat (stream heartbeat_t))
+  (drv_fault (attr read drv_fault_t))
   (adc_sample (attr readwrite adc_t)))
