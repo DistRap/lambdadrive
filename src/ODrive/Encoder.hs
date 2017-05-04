@@ -8,13 +8,16 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RankNTypes #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module ODrive.Encoder where
 
 import Ivory.Language
 import Ivory.HW
 import Ivory.Tower
+import Ivory.Language.Cast
 import ODrive.Platforms
+import ODrive.Types
 import ODrive.Ivory.Types.Encoder
 
 import Ivory.BSP.STM32.Peripheral.GTIM2345
@@ -24,11 +27,35 @@ data Encoder =
   Encoder
     { encoder_get_count :: forall eff . Ivory eff Uint16
     , encoder_get_dir   :: forall eff . Ivory eff IBool
+    , encoder_get       :: forall s s1 eff . (GetAlloc eff ~ 'Scope s) =>
+                           Ref s1 ('Struct "encoder_state")
+                           -> Ivory eff (ConstRef ('Stack s) ('Struct "encoder"))
     }
+
+[ivory|
+struct encoder_state
+  { enc_count      :: Stored Sint32
+  ; enc_cpr        :: Stored Sint32
+  ; enc_offset     :: Stored IFloat
+  ; enc_poles      :: Stored Uint8
+  ; enc_pll_period :: Stored IFloat
+  ; enc_pll_kp     :: Stored IFloat
+  ; enc_pll_ki     :: Stored IFloat
+  ; enc_pll_pos    :: Stored IFloat
+  ; enc_pll_vel    :: Stored IFloat
+  }
+|]
+
+encoderTypes :: Module
+encoderTypes = package "encoder_state_types" $ do
+  defStruct (Proxy :: Proxy "encoder_state")
 
 encoderTower :: Enc -> Tower e Encoder
 encoderTower (EncTimer {encTim=tim@GTIM {..}, encChan1=c1, encChan2=c2, encAf=af}) = do
   periodic <- period (Milliseconds 500)
+
+  towerDepends encoderTypes
+  towerModule  encoderTypes
 
   monitor "encoder_capture" $ do
     monitorModuleDef $ hw_moduledef
@@ -50,7 +77,7 @@ encoderTower (EncTimer {encTim=tim@GTIM {..}, encChan1=c1, encChan2=c2, encAf=af
         d <- encoderGetDir tim
         store encdir d
 
-  return $ Encoder (encoderGetCount tim) (encoderGetDir tim)
+  return $ Encoder (encoderGetCount tim) (encoderGetDir tim) (encoderGet tim)
 
 encoderGetCount :: GTIM GTIM_16 -> Ivory eff Uint16
 encoderGetCount GTIM{..} = do
@@ -61,6 +88,69 @@ encoderGetDir :: GTIM t -> Ivory eff IBool
 encoderGetDir GTIM{..} = do
   d <- getReg gtimRegCR1
   return $ bitToBool (d #. gtim_cr1_dir)
+
+encoderGet :: GetAlloc eff ~ 'Scope s
+           => GTIM GTIM_16
+           -> Ref s1 ('Struct "encoder_state")
+           -> Ivory eff (ConstRef ('Stack s) ('Struct "encoder"))
+encoderGet gtim encState = do
+  encCurrentCount <- encoderGetCount gtim
+  encCurrentDir <- encoderGetDir gtim
+
+  encCount <- deref (encState ~> enc_count)
+  encCpr <- deref (encState ~> enc_cpr)
+  encOffset <- deref (encState ~> enc_offset)
+  poles <- fmap safeCast $ deref (encState ~> enc_poles)
+
+   -- XXX: trickery from Sint32 -> Sint16
+   -- we look at bottom 16 bits only as the hardware counter is also
+   -- 32bit, this is exploited to get delta
+  let delta :: Sint16
+      delta = (twosComplementCast encCurrentCount) - (ivoryCast :: Sint32 -> Sint16) encCount
+      newstate :: Sint32
+      newstate = safeCast $ encCount + (safeCast delta)
+
+  store (encState ~> enc_count) newstate
+
+  let ph :: IFloat
+      ph = safeCast (newstate .% encCpr) - encOffset
+
+      elecRadPerEnc :: IFloat
+      elecRadPerEnc = poles * 2 * pi * (1/(safeCast encCpr)) :: IFloat
+
+      rotorPhase :: IFloat
+      rotorPhase = (elecRadPerEnc * ph) .% (2*pi)
+
+  comment "PLL"
+  pllKp <- deref (encState ~> enc_pll_kp)
+  pllKi <- deref (encState ~> enc_pll_ki)
+  pllPeriod <- deref (encState ~> enc_pll_period)
+
+  comment "predict current position"
+  pllpos <- deref (encState ~> enc_pll_pos)
+  pllvel <- deref (encState ~> enc_pll_vel)
+
+  let newpllpos = pllpos + pllPeriod * pllvel
+
+  comment "discrete phase detector"
+  let deltaPos :: IFloat
+      deltaPos = safeCast $ newstate - (castWith 0 $ floorF newpllpos)
+
+  comment "pll feedback"
+  let feedPllPos = newpllpos + pllPeriod * pllKp * deltaPos
+      feedPllVel = pllvel + pllPeriod * pllKi * deltaPos
+  store (encState ~> enc_pll_pos) feedPllPos
+  store (encState ~> enc_pll_vel) feedPllVel
+
+  sample <- local $ istruct
+    [ count .= ival newstate
+    , dir .= ival encCurrentDir
+    , phase .= ival rotorPhase
+    , pll_pos .= ival feedPllPos
+    , pll_vel .= ival feedPllVel
+    ]
+
+  return $ constRef sample
 
 encoderInit :: Enc -> Ivory eff ()
 encoderInit (EncTimer {..}) = do
