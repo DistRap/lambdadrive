@@ -6,6 +6,23 @@ resolver: lts-8.9
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
+- 'client'
+- location:
+    git: 'https://git.48.io/liveplot/'
+    commit: e0a590b6203fd076ea133e34317b6d117a9fab12
+  extra-dep: true
+- location:
+    git: 'https://git.48.io/pipes-serial/'
+    commit: f83c7f37509d70f94f12784ca63ce27a5ad46ee3
+  extra-dep: true
+- location:
+    git: 'https://git.48.io/andromeda/'
+    commit: 7f1bd272e14c831caa030cd24354e8416b646263
+  extra-dep: true
+- location:
+    git: 'https://git.48.io/mvc/'
+    commit: bf1401391096ebfa3089d8f4de2141d2c21ddea7
+  extra-dep: true
 - location: ../ivory-tower-stm32/
   extra-dep: true
   subdirs:
@@ -42,7 +59,11 @@ packages:
     - odrive-schema-tower
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+- GLUtil-0.9.1.1
+- serialport-0.4.6
+- vinyl-gl-0.3.0.1
+- Vec-1.0.5
 
 # Override default flag values for local packages and extra-deps
 flags: {}
