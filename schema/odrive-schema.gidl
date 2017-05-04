@@ -15,9 +15,9 @@
   (pll_vel float_t))
 
 (def-struct svm_t
-  (a       float_t)
-  (b       float_t)
-  (c       float_t)
+  (svm_a   float_t)
+  (svm_b   float_t)
+  (svm_c   float_t)
   (sextant float_t))
 
 (def-struct state_t

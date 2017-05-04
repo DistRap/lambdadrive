@@ -26,10 +26,10 @@ svm alpha beta = do
 
   out <- local $ istruct []
 
-  let storesvm aval bval cval = do
-        store (out ~> a) aval
-        store (out ~> b) bval
-        store (out ~> c) cval
+  let storesvm a b c = do
+        store (out ~> svm_a) a
+        store (out ~> svm_b) b
+        store (out ~> svm_c) c
 
   ifte_ (beta >=? 0)
     (ifte_ (alpha >=? 0)
