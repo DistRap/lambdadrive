@@ -37,7 +37,7 @@ phaseCurrentFromADC :: Uint16 -> IFloat
 phaseCurrentFromADC val = current $ shunt_volt $ amp_out_volt $ adcval_bal val
   where
     adcval_bal :: Uint16 -> IFloat
-    adcval_bal x = safeCast $ x - 2048
+    adcval_bal x = safeCast $ ((safeCast :: Uint16 -> Sint32) x) - 2048
 
     amp_out_volt :: IFloat -> IFloat
     amp_out_volt x = 3.3 / 4096 * x
