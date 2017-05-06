@@ -171,7 +171,7 @@ drv8301_en_gate = F405.pinB12
 
 m0_dc_cal, m1_dc_cal :: GPIOPin
 m0_dc_cal = F405.pinC9
-m1_dc_cal = F405.pinC1
+m1_dc_cal = F405.pinC15
 
 m0_nCS :: GPIOPin
 m0_nCS = F405.pinC13
