@@ -152,11 +152,6 @@ adc1 = ADC 1 F405.adc1 (5, F405.pinA5) (0, F405.pinA0) adcint
 adc2 = ADC 2 F405.adc2 (13, F405.pinC3) (10, F405.pinC0) adcint
 adc3 = ADC 3 F405.adc3 (12, F405.pinC2) (11, F405.pinC1) adcint
 
-m0dcCal :: GPIOPin
-m0dcCal = F405.pinC9
-m1dcCal :: GPIOPin
-m1dcCal = F405.pinC1
-
 spi3_pins :: SPIPins
 spi3_pins = SPIPins
   { spiPinMiso = F405.pinC12
