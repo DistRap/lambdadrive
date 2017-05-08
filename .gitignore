@@ -1,4 +1,5 @@
-app
+./app
+.gitattributes
 build
 .stack-work
 attic
