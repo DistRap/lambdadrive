@@ -89,6 +89,7 @@ encoderGetDir GTIM{..} = do
   d <- getReg gtimRegCR1
   return $ bitToBool (d #. gtim_cr1_dir)
 
+-- update and get, has to be called every enc_pll_period
 encoderGet :: GetAlloc eff ~ 'Scope s
            => GTIM GTIM_16
            -> Ref s1 ('Struct "encoder_state")
@@ -151,6 +152,23 @@ encoderGet gtim encState = do
     ]
 
   return $ constRef sample
+
+encoderInitState :: Uint8
+                 -> Sint32
+                 -> IFloat
+                 -> IFloat
+                 -> IFloat
+                 -> Ref s ('Struct "encoder_state")
+                 -> Ivory eff ()
+encoderInitState poles cpr period kp ki encState = do
+  store (encState ~> enc_poles) poles -- 7 is the number of rotor poles (magnets)
+  store (encState ~> enc_cpr) cpr
+  store (encState ~> enc_offset) 0
+
+  store (encState ~> enc_pll_kp) kp
+  store (encState ~> enc_pll_ki) ki
+  store (encState ~> enc_pll_period) period
+
 
 encoderInit :: Enc -> Ivory eff ()
 encoderInit (EncTimer {..}) = do

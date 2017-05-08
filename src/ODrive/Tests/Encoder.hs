@@ -51,10 +51,12 @@ app tocc totestenc touart toleds = do
 
   encchan <- channel
 
-  -- XXX measure offset
-  let encoderOffset = 179 :: IFloat
   -- 2400 pulses per mechanical revolution
   let encoderCpr = 600*4 :: Sint32
+      motorPoles = 7 :: Uint8
+      bandwidth = 2000 :: IFloat
+      kp = bandwidth * 2
+      ki = (1/4 * kp ** 2) -- critically damped
 
   monitor "encoder" $ do
     lastSample <- state "lastSample"
@@ -63,18 +65,7 @@ app tocc totestenc touart toleds = do
 
     handler systemInit "init" $ do
       callback $ const $ do
-        let bandwidth = 2000 :: IFloat
-            kp = bandwidth * 2
-            ki = (1/4 * kp ** 2) -- critically damped
-
-        store (encState ~> enc_pll_kp) kp
-        store (encState ~> enc_pll_ki) ki
-        store (encState ~> enc_pll_period) $ currentMeasPeriod cc
-
-        -- XXX: make configurable
-        store (encState ~> enc_poles) 7 -- 7 is the number of rotor poles (magnets)
-        store (encState ~> enc_cpr) encoderCpr
-        store (encState ~> enc_offset) encoderOffset
+        encoderInitState motorPoles encoderCpr (currentMeasPeriod cc) kp ki encState
 
         -- check that we don't get problems with discrete time approximation
         assert ((currentMeasPeriod cc) * kp <? 1.0)
