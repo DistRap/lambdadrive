@@ -84,13 +84,19 @@ pinOut pin = do
 
 pinLow :: GPIOPin -> Ivory eff ()
 pinLow pin = do
-  pinClear pin
   pinSetMode pin gpio_mode_output
+  pinClear pin
 
 pinHigh :: GPIOPin -> Ivory eff ()
 pinHigh pin = do
-  pinSet pin
   pinSetMode pin gpio_mode_output
+  pinSet pin
+
+pinPulse :: GPIOPin -> Ivory eff ()
+pinPulse pin = do
+  pinSetMode pin gpio_mode_output
+  pinSet pin
+  pinClear pin
 
 pinHiZ :: GPIOPin -> Ivory eff ()
 pinHiZ pin = pinSetMode pin gpio_mode_analog
