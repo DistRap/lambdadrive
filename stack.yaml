@@ -7,9 +7,10 @@ resolver: lts-8.9
 packages:
 - '.'
 - 'client'
+  #- '../liveplot'
 - location:
     git: 'https://git.48.io/liveplot/'
-    commit: e0a590b6203fd076ea133e34317b6d117a9fab12
+    commit: 6bdd32aa2e4f20553d76627b225f07c43beb77d9
   extra-dep: true
 - location:
     git: 'https://git.48.io/pipes-serial/'
