@@ -11,7 +11,8 @@ TESTS      := \
 	pwm-test \
 	encoder-test \
 	adc-test \
-	adcmulti-test
+	adcmulti-test \
+	spin-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)

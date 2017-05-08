@@ -51,6 +51,8 @@ CAN2UART
   CAN packets controlled by UART
 Blink
   Blinks external LEDs on GPIO1 and GPIO2
+Spin
+  Open loop locked motor spin test
 
 
 Run `make` to build all test applications.
