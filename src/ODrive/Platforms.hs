@@ -123,6 +123,12 @@ data PWMOut = PWMTimer {
     , pwmInit :: Uint16
     }
 
+data ExtInt =
+  ExtInt
+  { extInt :: HasSTM32Interrupt,
+    extPin :: GPIOPin
+  }
+
 type ADCs = (ADC, ADC, ADC)
 
 data TestPlatform =
@@ -144,6 +150,11 @@ data TestPlatform =
 testplatform_clockconfig :: TestPlatform -> ClockConfig
 testplatform_clockconfig = stm32config_clock . testplatform_stm32
 
+--testExti :: ExtInt
+--testExti = ExtInt (HasSTM32Interrupt F405.EXTI0) F405.pinD1
+
+testExti :: ExtInt
+testExti = ExtInt (HasSTM32Interrupt F405.EXTI4) gpio3
 
 adcint :: HasSTM32Interrupt
 adcint = HasSTM32Interrupt F405.ADC

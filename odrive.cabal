@@ -16,6 +16,7 @@ library
   exposed-modules:     ODrive.Platforms
                        ODrive.ADC
                        ODrive.Encoder
+                       ODrive.ExtInt
                        ODrive.Tests.CANSendRecv
                        ODrive.Tests.CAN2UART
                        ODrive.LED
