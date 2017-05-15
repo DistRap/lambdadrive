@@ -65,6 +65,9 @@ pwmTower (PWMTimer {pwmTim=atim@ATIM {..},
         -- should be part of PWMTimer record
         modifyReg atimRegARR $ setField atim_16_data (fromRep tim_period_clocks)
 
+        --comment "configure RCR for 1 UEV (update event) on 0 point"
+        modifyReg atimRegRCR $ setField atim_rcr_rcr (fromRep 1)
+
         comment "enable outputs and complementary outputs"
         modifyReg atimRegCCER $ do
           setBit atim_ccer_cc1e
