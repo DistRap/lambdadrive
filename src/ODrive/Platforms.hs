@@ -181,8 +181,14 @@ m1_nCS = F405.pinC14
 enc0 :: Enc
 enc0 = EncTimer F405.tim3 F405.pinB4 F405.pinB5 F405.gpio_af_tim3
 
+enc0Z0 :: GPIOPin
+enc0Z0 = F405.pinA15
+
 enc1 :: Enc
 enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
+
+enc1Z0 :: GPIOPin
+enc1Z0 = F405.pinB3
 
 pwm0 :: PWMOut
 pwm0 = PWMTimer F405.tim1
