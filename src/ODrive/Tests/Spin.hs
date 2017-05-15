@@ -12,10 +12,8 @@
 module ODrive.Tests.Spin where
 
 import Ivory.Language
-import Ivory.Language.Cast
 import Ivory.Stdlib
 import Ivory.Tower
-import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.ClockConfig
@@ -28,12 +26,9 @@ import ODrive.DRV8301
 import ODrive.Platforms
 import ODrive.LED
 import ODrive.PWM
-import ODrive.Tests.SPI
 import ODrive.Types
 import ODrive.Serialize
-import ODrive.Utils
 import ODrive.Control.Modulation
-import ODrive.Control.Transform
 import ODrive.Control.SVM
 
 app :: (e -> ClockConfig)
@@ -55,6 +50,8 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
   uart <- fmap touart getEnv
   leds <- fmap toleds getEnv
 
+  let measPeriod = currentMeasPeriod cc
+
   blink (Milliseconds 1000) [redLED leds]
   blink (Milliseconds 666) [greenLED leds]
 
@@ -68,7 +65,7 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
                 ]
   (sreq, sready) <- spiTower tocc devices (testSPIPins spi)
 
-  (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal (currentMeasPeriod cc)
+  (adc_chan, adc_dc_chan, _timings) <- adcMultiTower adcs m0_dc_cal measPeriod (pwmTim pwm)
   PWM{..} <- pwmTower pwm
 
   periodic <- period (Milliseconds 11)
@@ -80,9 +77,6 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
   schedule "drvSchedule"
     [drvTask] sready sreq
-
-  -- XXX measure offset
-  let encoderOffset = 179 :: IFloat
 
   -- 2400 pulses per mechanical revolution
   let encoderCpr = 600*4 :: Sint32
