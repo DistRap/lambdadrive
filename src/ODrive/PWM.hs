@@ -128,3 +128,13 @@ pwm_set_atim atim vals = do
   set_ccr reg val = do
     c <- deref val
     setReg reg (setField atim_16_data (fromRep c))
+
+pwm_get_cnt :: ATIM -> Ivory eff Uint16
+pwm_get_cnt ATIM{..} = do
+  d <- getReg atimRegCNT
+  return $ toRep (d #. atim_16_data)
+
+pwm_get_dir :: ATIM -> Ivory eff Uint8
+pwm_get_dir ATIM{..} = do
+  d <- getReg atimRegCR1
+  return $ toRep (d #. atim_cr1_dir)
