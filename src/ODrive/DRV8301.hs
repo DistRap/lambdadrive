@@ -30,7 +30,7 @@ drvTower :: (IvoryZero init, IvoryArea init) =>
             -> Tower e (( ChanOutput ('Stored IBool)
                         , ChanOutput ('Struct "drv_fault") ))
 drvTower (BackpressureTransmit req_c res_c) init_chan dev = do
-  periodic <- period (Milliseconds 100)
+  periodic <- period (Milliseconds 1000)
   ready_chan <- channel
   fault_chan <- channel
 
