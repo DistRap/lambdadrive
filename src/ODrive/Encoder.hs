@@ -37,6 +37,7 @@ struct encoder_state
   { enc_count      :: Stored Sint32
   ; enc_cpr        :: Stored Sint32
   ; enc_offset     :: Stored IFloat
+  ; enc_dir        :: Stored Sint8
   ; enc_poles      :: Stored Uint8
   ; enc_pll_period :: Stored IFloat
   ; enc_pll_kp     :: Stored IFloat
@@ -52,30 +53,17 @@ encoderTypes = package "encoder_state_types" $ do
 
 encoderTower :: Enc -> Tower e Encoder
 encoderTower (EncTimer {encTim=tim@GTIM {..}, encChan1=c1, encChan2=c2, encAf=af}) = do
-  periodic <- period (Milliseconds 500)
-
   towerDepends encoderTypes
   towerModule  encoderTypes
 
   monitor "encoder_capture" $ do
     monitorModuleDef $ hw_moduledef
 
-    enccount <- stateInit "count" (ival (0 :: Uint16))
-    encdir <- state "dir" -- IBool
-
     handler systemInit "init" $ do
       callback $ const $ do
         encoderInitPin c1 af
         encoderInitPin c2 af
         encoderInitTimer tim
-
-    handler periodic "periodic" $ do
-      callback $ \_ -> do
-        cnt <- encoderGetCount tim
-        store enccount cnt
-
-        d <- encoderGetDir tim
-        store encdir d
 
   return $ Encoder (encoderGetCount tim) (encoderGetDir tim) (encoderGet tim)
 
@@ -96,16 +84,17 @@ encoderGet :: GetAlloc eff ~ 'Scope s
            -> Ivory eff (ConstRef ('Stack s) ('Struct "encoder"))
 encoderGet gtim encState = do
   encCurrentCount <- encoderGetCount gtim
-  encCurrentDir <- encoderGetDir gtim
+  encCurrentDir <- encoderGetDir gtim -- direction reported by hardware
 
   encCount <- deref (encState ~> enc_count)
   encCpr <- deref (encState ~> enc_cpr)
   encOffset <- deref (encState ~> enc_offset)
+  encDir <- deref (encState ~> enc_dir) -- encoder/motor direction from offset calibration
   poles <- fmap safeCast $ deref (encState ~> enc_poles)
 
    -- XXX: trickery from Sint32 -> Sint16
    -- we look at bottom 16 bits only as the hardware counter is also
-   -- 32bit, this is exploited to get delta
+   -- 16bit, this is exploited to get delta
   let delta :: Sint16
       delta = (twosComplementCast encCurrentCount) - (ivoryCast :: Sint32 -> Sint16) encCount
       newstate :: Sint32
@@ -116,11 +105,13 @@ encoderGet gtim encState = do
   let ph :: IFloat
       ph = safeCast (newstate .% encCpr) - encOffset
 
+      correctedPhase = safeCast encDir * ph
+
       elecRadPerEnc :: IFloat
       elecRadPerEnc = poles * 2 * pi * (1/(safeCast encCpr)) :: IFloat
 
       rotorPhase :: IFloat
-      rotorPhase = (elecRadPerEnc * ph) .% (2*pi)
+      rotorPhase = (elecRadPerEnc * correctedPhase) .% (2*pi)
 
   comment "PLL"
   pllKp <- deref (encState ~> enc_pll_kp)
@@ -160,15 +151,14 @@ encoderInitState :: Uint8
                  -> IFloat
                  -> Ref s ('Struct "encoder_state")
                  -> Ivory eff ()
-encoderInitState poles cpr period kp ki encState = do
+encoderInitState poles cpr period' kp ki encState = do
   store (encState ~> enc_poles) poles -- 7 is the number of rotor poles (magnets)
   store (encState ~> enc_cpr) cpr
   store (encState ~> enc_offset) 0
 
   store (encState ~> enc_pll_kp) kp
   store (encState ~> enc_pll_ki) ki
-  store (encState ~> enc_pll_period) period
-
+  store (encState ~> enc_pll_period) period'
 
 encoderInit :: Enc -> Ivory eff ()
 encoderInit (EncTimer {..}) = do
