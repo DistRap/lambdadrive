@@ -25,6 +25,11 @@ library
                        ODrive.Control.Transform
                        ODrive.PWM
                        ODrive.Types
+                       ODrive.Calibration
+                       ODrive.Calibration.Inductance
+                       ODrive.Calibration.Encoder
+                       ODrive.Calibration.Lock
+                       ODrive.Calibration.Resistance
                        ODrive.DRV8301
                        ODrive.DRV8301.Regs
                        ODrive.DRV8301.RegTypes

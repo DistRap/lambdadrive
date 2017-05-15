@@ -14,6 +14,48 @@
   (pll_pos float_t)
   (pll_vel float_t))
 
+(def-struct adc_enc_sample_t
+  (adc_sample adc_t)
+  (enc_sample encoder_t)
+  )
+
+(def-struct cal_r_t
+  (resistance float_t)
+  (maxVoltage float_t)
+  (integrator float_t)
+  (seconds    float_t)
+  )
+
+(def-struct cal_i_t
+  (inductance float_t)
+  (testVoltageLow float_t)
+  (testVoltageHigh float_t)
+  (alphasLow float_t)
+  (alphasHigh float_t)
+  (cycles uint16_t)
+  )
+
+(def-enum cal_error_t
+  (ok 0)
+  (no_encoder_response 1)
+  )
+
+(def-struct cal_enc_t
+  (offset    float_t)
+  (direction sint8_t)
+  (scanRange float_t)
+  (steps     uint16_t)
+  )
+
+(def-struct calibration_t
+  (testCurrent float_t)
+  (voltageMag  float_t)
+  (calR  cal_r_t)
+  (calI  cal_i_t)
+  (calEnc  cal_enc_t)
+  (calErr  cal_error_t)
+  )
+
 (def-struct svm_t
   (svm_a   float_t)
   (svm_b   float_t)
@@ -35,12 +77,12 @@
   (fet_lo_c_overcurr   bool_t))
 
 (def-struct heartbeat_t
-  (adc     adc_t)
+  (adc_enc adc_enc_sample_t)
   (dccal   dccal_t)
-  (encoder encoder_t)
   (svm     svm_t))
 
 (def-interface motor_i ()
   (heartbeat (stream heartbeat_t))
   (drv_fault (attr read drv_fault_t))
+  (calib (attr read calibration_t))
   (adc_sample (attr readwrite adc_t)))
