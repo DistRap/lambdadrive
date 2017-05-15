@@ -58,6 +58,9 @@ adcMultiTower (
     adc_last_regular <- stateInit "adc_last_regular" (ival (0 :: Uint16))
     adc_last_injected <- stateInit "adc_last_injected" (ival (0 :: Uint16))
 
+    tTimings <- stateInit "tTimings" (ival (0 :: Uint16))
+    tTimingsDir <- stateInit "tTimingsDir" (ival (0 :: Uint8))
+
     -- isr source
     -- adc_src_none M1 dccal
     -- adc_src_t1cc4 M0 c
@@ -165,7 +168,6 @@ adcMultiTower (
                               )
                           (do
                               store phase_b_done true
-                              pwm_set_atim atim (constRef nextTimings)
 
                               lastdc <- deref dccal_phase_b
                               store adc_phase_b ((phaseCurrentFromADC val) - lastdc)
@@ -299,13 +301,21 @@ adcMultiTower (
 
         interrupt_enable int
 
+    -- XXX; looks like we can split this from adc tower again
     handler (snd timings_chan) "timings" $ do
       callback $ \vals -> do
-        --x <- deref vals
         arrayMap $ \ix -> do
           x <- deref (vals ! ix)
           store (nextTimings ! ix) x
           pinPulse gpio1
+          c <- pwm_get_cnt atim
+          store tTimings c
+
+          d <- pwm_get_dir atim
+          store tTimingsDir d
+
+          pwm_set_atim atim (constRef nextTimings)
+
         --pwm_set_atim atim vals
 
   -- return output side of measurement channels
