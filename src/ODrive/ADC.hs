@@ -13,10 +13,12 @@ import Ivory.Tower
 import Ivory.BSP.STM32.Interrupt
 import Ivory.BSP.STM32.Peripheral.ADC
 import Ivory.BSP.STM32.Peripheral.GPIOF4
+import Ivory.BSP.STM32.Peripheral.ATIM18
 
 import ODrive.Platforms
 import ODrive.Types
 import ODrive.Utils
+import ODrive.PWM
 import ODrive.Ivory.Types.Adc
 import ODrive.Ivory.Types.Dccal
 
@@ -27,17 +29,21 @@ import ODrive.Ivory.Types.Dccal
 adcMultiTower :: (ADC, ADC, ADC)
               -> GPIOPin
               -> IFloat
-              -> Tower e (ChanOutput ('Struct "adc"), ChanOutput ('Struct "dccal"))
+              -> ATIM
+              -> Tower e (ChanOutput ('Struct "adc"),
+                          ChanOutput ('Struct "dccal"),
+                          PWMInput)
 adcMultiTower (
     a1@ADC {adcPeriph=adcp1, adcChan=chan1, adcInjChan=ichan1, adcInt=int}
   , a2@ADC {adcPeriph=adcp2, adcChan=chan2, adcInjChan=ichan2, adcInt=_}
   , a3@ADC {adcPeriph=adcp3, adcChan=chan3, adcInjChan=ichan3, adcInt=_})
-  drv8301_dc_cal meas_period = do
+  drv8301_dc_cal meas_period atim = do
 
   odriveTowerDeps
 
   adc_chan <- channel -- ADC readings (adc struct)
   adc_dc_chan <- channel -- DC calibration measurements (dccal struct)
+  timings_chan <- channel
 
   isr <- signalUnsafe
             (Interrupt int)
@@ -46,6 +52,8 @@ adcMultiTower (
 
   monitor "adc_multi" $ do
     monitorModuleDef $ hw_moduledef
+
+    nextTimings <- stateInit "nextTimings" (iarray [ival 0, ival 0, ival 0])
 
     adc_last_regular <- stateInit "adc_last_regular" (ival (0 :: Uint16))
     adc_last_injected <- stateInit "adc_last_injected" (ival (0 :: Uint16))
@@ -157,6 +165,8 @@ adcMultiTower (
                               )
                           (do
                               store phase_b_done true
+                              pwm_set_atim atim (constRef nextTimings)
+
                               lastdc <- deref dccal_phase_b
                               store adc_phase_b ((phaseCurrentFromADC val) - lastdc)
                               )
@@ -180,13 +190,13 @@ adcMultiTower (
               pbd <- deref phase_b_done
               pcd <- deref phase_c_done
               when (pbd .&& pcd) $ do
-                pinPulse gpio3
+                --pinPulse gpio3
                 (mkMeas >>= emit e)
 
               dpbd <- deref dccal_phase_b_done
               dpcd <- deref dccal_phase_c_done
               when (dpbd .&& dpcd) $ do
-                pinPulse gpio4
+                --pinPulse gpio4
                 assert isDCCal
                 (mkDCCalMeas >>= emit edc)
 
@@ -234,8 +244,8 @@ adcMultiTower (
         interrupt_set_priority int 5
 
         pinOut drv8301_dc_cal
-        pinOut gpio3
-        pinOut gpio4
+        --pinOut gpio3
+        --pinOut gpio4
 
         mapM_ adc_in_pin $ map snd [chan1, chan2, chan3, ichan1, ichan2, ichan3]
 
@@ -289,8 +299,17 @@ adcMultiTower (
 
         interrupt_enable int
 
+    handler (snd timings_chan) "timings" $ do
+      callback $ \vals -> do
+        --x <- deref vals
+        arrayMap $ \ix -> do
+          x <- deref (vals ! ix)
+          store (nextTimings ! ix) x
+          pinPulse gpio1
+        --pwm_set_atim atim vals
+
   -- return output side of measurement channels
-  return (snd adc_chan, snd adc_dc_chan)
+  return (snd adc_chan, snd adc_dc_chan, fst timings_chan)
 
 -- set pin to analog input mode
 adc_in_pin :: GPIOPin -> Ivory eff ()

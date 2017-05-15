@@ -15,6 +15,8 @@ module ODrive.Types
   , odriveTowerDeps
   , uartTestTypes
   , UARTBuffer
+  , PWMInput
+  , PWMOutput
   ) where
 
 import Ivory.Language
@@ -34,6 +36,9 @@ uartTestTypes :: Module
 uartTestTypes = package "uartTestTypes" $ do
   defStringType (Proxy :: Proxy UARTBuffer)
 
+type PWMArray = 'Array 3 ('Stored Uint16)
+type PWMInput  = ChanInput PWMArray
+type PWMOutput = ChanOutput PWMArray
 
 -- from SMACCMPilot.Flight.Control.PID
 -- | Constrain a floating point value to the range [xmin..xmax].

@@ -49,7 +49,7 @@ app tocc  totestadcs totestpwm touart toleds = do
   (uarto, _uarti, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
   monitor "uart" mon
 
-  (adc_chan, adc_dc_chan) <- adcMultiTower adcs m0_dc_cal (currentMeasPeriod cc)
+  (adc_chan, adc_dc_chan, _timings) <- adcMultiTower adcs m0_dc_cal (currentMeasPeriod cc) (pwmTim pwm)
   -- pwm must go after adc as it starts to trigger all adcs simultaneously
   _ <- pwmTower pwm
 
