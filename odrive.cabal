@@ -43,6 +43,8 @@ library
                        ODrive.Tests.ADC
                        ODrive.Tests.ADCMulti
                        ODrive.Tests.Spin
+                       ODrive.Tests.Calib
+                       ODrive.Tests.FOCVoltage
 
   build-depends:       base >= 4.6,
                        monadLib,
@@ -196,6 +198,40 @@ executable adcmulti-test-gen
 
 executable spin-test-gen
   main-is:             SpinTest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-hal,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+executable calib-test-gen
+  main-is:             CalibTest.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-hal,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       odrive
+  ghc-options:          -Wall
+
+executable focvoltage-test-gen
+  main-is:             FOCVoltageTest.hs
   hs-source-dirs:      test
   build-depends:       base >= 4.6,
                        ivory,

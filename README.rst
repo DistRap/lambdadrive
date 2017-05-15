@@ -42,8 +42,8 @@ PWM
 SPI
   Application for testing DRV8301 communications.
 
-  Talks to two DRV8301s sharing SPI bus, outputs debug info on UART1.
-  Polls status register every 500ms after successful initialization.
+  Talks to two DRV8301s sharing SPI bus.
+  Polls status register every 1000ms after successful initialization.
 CANSendRecv
   Test application sending packets from CAN1, blinks on received packets.
 CAN2UART
@@ -53,6 +53,11 @@ Blink
   Blinks external LEDs on GPIO1 and GPIO2
 Spin
   Open loop locked motor spin test
+Calib
+  Calibration test, performs full calibration sequence
+FOCVoltage
+  Field oriented control voltage loop test, performs calibration
+  sequence and starts FOC voltage loop, spinning motor slowly locked to encoder phase
 
 
 Run `make` to build all test applications.
