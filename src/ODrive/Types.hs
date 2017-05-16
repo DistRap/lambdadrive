@@ -25,6 +25,7 @@ import Ivory.Tower
 import Ivory.Serialize
 
 import ODrive.Ivory.Types
+import ODrive.Control.PID
 
 [ivory| string struct UARTBuffer 128 |]
 
@@ -53,9 +54,12 @@ fconstrain = proc "fconstrain" $ \xmin xmax x -> body $
 odriveTypes :: Module
 odriveTypes = package "odrive_types" $ do
   incl fconstrain
+  incl pidUpdate
   hw_moduledef
 
   defStringType (Proxy :: Proxy UARTBuffer)
+
+  defStruct (Proxy :: Proxy "PID")
 
   depend serializeModule
   mapM_ depend typeModules

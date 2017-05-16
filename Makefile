@@ -14,7 +14,8 @@ TESTS      := \
 	adcmulti-test \
 	spin-test \
 	calib-test \
-	focvoltage-test
+	focvoltage-test \
+	foccurrent-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)

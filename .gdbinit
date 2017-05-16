@@ -16,3 +16,6 @@ set mem inaccessible-by-default off
 #display calibState
 #display sumFwd
 #display sumBack
+
+display pidD
+display pidQ
