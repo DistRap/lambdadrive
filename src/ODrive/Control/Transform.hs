@@ -15,16 +15,16 @@ clarke pb pc = (alpha, beta)
     alpha = -pb - pc
     beta  = (pb - pc) / (sqrt 3)
 
-parke :: IFloat -> IFloat -> IFloat -> (IFloat, IFloat)
-parke alpha beta theta = (d, q)
+park :: IFloat -> IFloat -> IFloat -> (IFloat, IFloat)
+park alpha beta theta = (d, q)
   where
     d = c*alpha + s*beta
-    q = c*beta  + s*alpha
+    q = c*beta  - s*alpha
     c = cos theta
     s = sin theta
 
-iparke :: IFloat -> IFloat -> IFloat -> (IFloat, IFloat)
-iparke d q theta = (alpha, beta)
+ipark :: IFloat -> IFloat -> IFloat -> (IFloat, IFloat)
+ipark d q theta = (alpha, beta)
   where
     alpha = c*d - s*q
     beta  = c*q + s*d
