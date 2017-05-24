@@ -13,6 +13,7 @@ import qualified Pipes.Prelude as P
 import ODrive.Types.Adc
 import ODrive.Types.Encoder
 import ODrive.Types.Svm
+import ODrive.Types.CurrentControl
 import ODrive.Client.Pipes
 -- lp
 import MVC
@@ -47,6 +48,13 @@ des = forever $ do
       case me of
         Nothing -> return ()
         Just x -> mapM_ yield $ fromSVM x
+    67 -> do
+      me <- lift $ msgDes msg
+      case me of
+        Nothing -> return ()
+        Just x -> do
+          liftIO $ print x
+          mapM_ yield $ fromCC x
     _ -> return ()
 
 
@@ -97,7 +105,7 @@ myplot :: Producer a IO ()
        -> Managed (View (Either (SensorReading GLfloat) GLApp),
                    Controller (Either a Event))
 myplot pipe = do
-  let sc = (9, 1)
+  let sc = (9, 2)
       inits = [
          lineGraph "pll_pos" sc (0, 0)
        , lineGraph "pll_vel" sc (1, 0)
@@ -108,6 +116,15 @@ myplot pipe = do
        , lineGraph "svm_a" sc (6, 0)
        , lineGraph "svm_b" sc (7, 0)
        , lineGraph "svm_c" sc (8, 0)
+       , lineGraph "alpha" sc (0, 1)
+       , lineGraph "beta" sc (1, 1)
+       , lineGraph "d" sc (2, 1)
+       , lineGraph "q" sc (3, 1)
+       , lineGraph "q_in" sc (4, 1)
+       , lineGraph "q_err" sc (5, 1)
+       , lineGraph "mod_d" sc (6, 1)
+       , lineGraph "mod_q" sc (7, 1)
+       , lineGraph "current_i_q" sc (8, 1)
        ]
   (v, c) <- ogl inits
 
@@ -134,6 +151,23 @@ fromSVM Svm{..} = [
     Reading "svm_a" $ gr' 1 svm_a
   , Reading "svm_b" $ gr' 1 (svm_b)
   , Reading "svm_c" $ gr' 1 (svm_c)
+  ]
+
+fromCC :: CurrentControl -> [SensorReading GLfloat]
+fromCC CurrentControl{..} = [
+    Reading "alpha" $ gr' 1 alpha
+  , Reading "beta" $ gr' 1 beta
+  , Reading "d" $ gr' 1 d
+  , Reading "q" $ gr' 1 q
+  , Reading "d_in" $ gr' 1 d_in
+  , Reading "q_in" $ gr' 1 q_in
+  , Reading "d_err" $ gr' 1 d_err
+  , Reading "q_err" $ gr' 1 q_err
+  , Reading "v_d" $ gr' 1 v_d
+  , Reading "v_q" $ gr' 1 v_q
+  , Reading "mod_d" $ gr' 1 mod_d
+  , Reading "mod_q" $ gr' 1 mod_q
+  , Reading "current_i_q" $ gr' 10 current_i_q
   ]
 
 gr' :: GLfloat -> Float -> GLfloat

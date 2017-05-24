@@ -17,6 +17,7 @@ import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Sched
 
 import Ivory.BSP.STM32.ClockConfig
+import Ivory.BSP.STM32.Driver.UART
 import Ivory.BSP.STM32.Driver.SPI
 
 import ODrive.ADC
@@ -27,6 +28,7 @@ import ODrive.Platforms
 import ODrive.LED
 import ODrive.PWM
 import ODrive.Types
+import ODrive.Serialize
 import ODrive.Calibration
 import ODrive.Control.Modulation
 import ODrive.Control.PID
@@ -36,6 +38,7 @@ import ODrive.Ivory.Types.Encoder
 import ODrive.Ivory.Types.AdcEncSample
 import ODrive.Ivory.Types.Calibration
 import ODrive.Ivory.Types.CalEnc
+import ODrive.Ivory.Types.CurrentControl
 
 app :: (e -> ClockConfig)
     -> (e -> ADCs)
@@ -53,7 +56,7 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
   encm  <- fmap totestenc getEnv
   spi  <- fmap totestspi getEnv
   pwm  <- fmap totestpwm getEnv
-  _uart <- fmap touart getEnv
+  uart <- fmap touart getEnv
   leds <- fmap toleds getEnv
 
   let measPeriod = currentMeasPeriod cc
@@ -81,6 +84,29 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
   (calAdcEncIn, calDone) <- calibrationTower cc timingsIn
 
+  (uarto, _istream, mon) <- uartTower tocc (testUARTPeriph uart) (testUARTPins uart) 115200
+  monitor "uart" mon
+  cc_chan <- channel
+  --div_adc <- rateDivider 1000 (adc_chan)
+--  div_adc_dc <- rateDivider 1000 (adc_dc_chan)
+  div_cc <- rateDivider 501 (snd cc_chan)
+--  div_enc <- rateDivider 1000 (snd encchan)
+
+  uartTasks <- sequence
+    [ do
+        (t, chan) <- task name
+        monitor name $ f chan
+        return t
+    | (name, f) <-
+--      [ ("adc", adcSender div_adc)
+--      , ("dccal", dccalSender div_adc_dc)
+      [ ("cc", currentControlSender div_cc)
+--      , ("enc", encoderSender div_enc)
+      ]
+    ]
+
+  schedule "uart" uartTasks systemInit uarto
+
   -- 2400 pulses per mechanical revolution
   let encoderCpr = 600*4 :: Sint32
       motorPoles = 7 :: Uint8
@@ -92,9 +118,7 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
     lastSample <- state "lastSample"
     encState <- state "encState"
     calibState <- state "calibState"
-
-    pidD <- state "pidD"
-    pidQ <- state "pidQ"
+    control <- state "control"
 
     speedOffset <- stateInit "speedOffset" $ ival (0.0 :: IFloat)
 
@@ -104,10 +128,14 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
     handler ext "ext" $ do
       callback $ const $ do
         store trig true
+        t <- deref trig
+        --assert (iNot t)
         tf <- deref trigFlip
         ifte_ (tf) (store trigFlip false >> ledOff (greenLED leds))
           (store trigFlip true >> ledOn (greenLED leds))
         speedOffset %= (+0.1)
+
+        (control ~> q_in) %= (+0.1)
 
     handler systemInit "init" $ do
       callback $ const $ do
@@ -136,17 +164,25 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
       callback $ \x -> do
         refCopy calibState x
 
-        d <- calibState ~> calEnc ~>* direction
-        store (encState ~> enc_dir) d
+        di <- calibState ~> calEnc ~>* direction
+        store (encState ~> enc_dir) di
         off <- calibState ~> calEnc ~>* offset
         store (encState ~> enc_offset) off
 
         store calibPhase false
         store ready true
 
+        let qDes = 0.5
+            pGain = 2.0
+            iGain = 200.0
+        store (control ~> q_in) qDes
+        store (control ~> p_gain) pGain
+        store (control ~> i_gain) iGain
+
     handler adc_chan "adc_chan" $ do
       timings <- emitter timingsIn 1
       calAdcEncE <- emitter calAdcEncIn 1
+      ccE <- emitter (fst cc_chan) 1
       callback $ \adc -> do
 
         enc <- encoder_get encState
@@ -166,30 +202,75 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
         isready <- deref ready
         when isready $ do
+          bus <- adc ~>* vbus
+          pbI <- adc ~>* phase_b
+          pcI <- adc ~>* phase_c
 
-          bus <- deref (adc ~> vbus)
-          pbI <- deref (adc ~> phase_b)
-          pcI <- deref (adc ~> phase_c)
+          theta <- enc ~>* phase
+          pllVel <- enc ~>* pll_vel
 
-          theta <- deref (enc ~> phase)
-
-          let dDes = 0
-              qDes = 1.0
-              kp = 100.0 :: IFloat
-              ki = 1.0 :: IFloat
-              kd = 0.0 :: IFloat
-              (alpha, beta) = clarke pbI pcI
-              (d, q) = parke alpha beta theta
-
+          let (alpha', beta') = clarke pbI pcI
+              (d', q') = park alpha' beta' theta
               vfactor = 1.0 / ((2.0 / 3.0) * bus)
 
-          dV <- call pidUpdate pidD kp ki kd dDes d measPeriod
-          qV <- call pidUpdate pidQ kp ki kd qDes q measPeriod
+          store (control ~> alpha) alpha'
+          store (control ~> beta) beta'
+          store (control ~> d) d'
+          store (control ~> q) q'
+          store (control ~> vfact) vfactor
 
-          let modD = vfactor * dV
-              modQ = vfactor * qV
-              (modAlpha, modBeta) = iparke modD modQ theta
+          dIn <- control ~>* d_in
+          qIn <- control ~>* q_in
+          store (control ~> d_err) (dIn - d')
+          store (control ~> q_err) (qIn - q')
+          dErr <- control ~>* d_err
+          qErr <- control ~>* q_err
+
+          ciD <- control ~>* current_i_d
+          ciQ <- control ~>* current_i_q
+          ckp <- control ~>* p_gain
+          cki <- control ~>* i_gain
+
+          -- PI control
+          let vD = ciD + dErr * ckp
+              vQ = ciQ + qErr * ckp
+          store (control ~> v_d) vD
+          store (control ~> v_q) vQ
+
+          let modD = vfactor * vD
+              modQ = vfactor * vQ
+              modS = 0.4 * (sqrt 3 / 2.0) * (1 / sqrt (modD ** 2 + modQ**2))
+              decay = 0.99
+
+          store (control ~> mod_d) modD
+          store (control ~> mod_q) modQ
+          store (control ~> mod_scale) modS
+
+          ifte_ (modS <=? 1.0)
+            (do
+                store (control ~> scaled) true
+                (control ~> mod_d) %= (*modS)
+                (control ~> mod_q) %= (*modS)
+                (control ~> current_i_d) %= (*decay)
+                (control ~> current_i_q) %= (*decay)
+                )
+            (do
+                store (control ~> scaled) false
+                (control ~> current_i_d) %= (+(dErr * cki * measPeriod))
+                (control ~> current_i_q) %= (+(qErr * cki * measPeriod))
+                )
+
+          modDout <- control ~>* mod_d
+          modQout <- control ~>* mod_q
+
+          store (control ~> ibus) $ d' * modDout + q' * modQout
+
+          let (modAlpha, modBeta) = ipark modDout modQout theta
 
           current_modulation modAlpha modBeta pwmout
 
+          store (control ~> mod_alpha) modAlpha
+          store (control ~> mod_beta) modBeta
+
           emit timings (constRef pwmout)
+          emit ccE (constRef control)

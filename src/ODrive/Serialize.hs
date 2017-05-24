@@ -6,6 +6,7 @@ module ODrive.Serialize
   , dccalSender
   , encoderSender
   , svmSender
+  , currentControlSender
   , sampleSender
   , Sender
   , serializeTowerDeps
@@ -79,3 +80,6 @@ encoderSender = sampleSender 'E' (Proxy :: Proxy 17)
 
 svmSender :: Sender e ('Struct "svm")
 svmSender = sampleSender 'S' (Proxy :: Proxy 16)
+
+currentControlSender :: Sender e ('Struct "current_control")
+currentControlSender = sampleSender 'C' (Proxy :: Proxy 85)
