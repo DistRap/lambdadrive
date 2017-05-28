@@ -125,7 +125,7 @@ drvTower (BackpressureTransmit req_c res_c) init_chan dev = do
               (store lastStatus1 regval)
               (do store lastStatus2 regval
                   ls1 <- deref lastStatus1
-                  ls2 <- deref lastStatus1
+                  ls2 <- deref lastStatus2
                   when (ls1 /=? 0 .|| ls2 /=? 0) $ do
                     drvFaultFromRegs ls1 ls2 lastStat
                     emit fault_e $ constRef lastStat
