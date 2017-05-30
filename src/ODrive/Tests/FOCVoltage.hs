@@ -95,6 +95,7 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
     trig <- state "trig"
     trigFlip <- state "trigFlip"
+    drvfault <- state "drvfault"
 
     handler ext "ext" $ do
       callback $ const $ do
@@ -125,7 +126,9 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
         --pwm_set (constRef pwmout)
 
     handler drvFault "drvFault" $ do
-      callback $ const $ store ready false
+      callback $ \fault -> do
+        refCopy drvfault fault
+        store ready false
 
     handler calDone "calDone" $ do
       callback $ \x -> do
