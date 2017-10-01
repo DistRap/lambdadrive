@@ -5,7 +5,6 @@ TARGET ?= /dev/odrive
 IVORYFLAGS ?= --const-fold --verbose
 TESTS      := \
 	cansendrecv-test \
-	can2uart-test \
 	blink-test \
 	spi-test \
 	pwm-test \
@@ -15,7 +14,8 @@ TESTS      := \
 	spin-test \
 	calib-test \
 	focvoltage-test \
-	foccurrent-test
+	foccurrent-test \
+	canopen-test
 AADL_TESTS := 
 CLEANS     := $(foreach test,$(TESTS),$(test)-clean) \
 	            $(foreach test,$(AADL_TESTS),$(test)_clean)
@@ -26,20 +26,24 @@ GDB := arm-none-eabi-gdb \
 		--ex 'set mem inaccessible-by-default off' \
 		--ex 'attach 1'
 
+all: schema $(TESTS)
+
 .PHONY: test clean $(TESTS) $(AADL_TESTS) $(CLEANS)
 test: $(TESTS) $(AADL_TESTS)
 clean: $(CLEANS)
-	make -C schema clean
+	make -C canopen-schema clean
 
 # This target bootstraps Gidl if the generated packages do not exist
 # yet, then calls the default target to generate them.
-.PHONY: gidl-bootstrap
-gidl-bootstrap:
-	stack --stack-yaml=gidl-bootstrap.yaml install ../gidl --force-dirty || \
-	stack --stack-yaml=gidl-bootstrap.yaml install ./gidl --force-dirty
+.PHONY: cidl-odrive-bootstrap
+cidl-odrive-bootstrap:
+	stack --stack-yaml=cidl-bootstrap.yaml install cidl-odrive
+
+schema: cidl-odrive-bootstrap
+	make -C canopen-schema
 
 define MKTEST
-$(1):
+$(1): schema
 	# ideally we would be only target executable
 	# needs fixing in stack
 	# https://github.com/commercialhaskell/stack/issues/1406

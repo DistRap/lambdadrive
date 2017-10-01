@@ -1,28 +1,28 @@
 # For more information, see: http://docs.haskellstack.org/en/stable/yaml_configuration.html
 
 # Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
-resolver: lts-8.9
+resolver: lts-9.1
 
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
-- 'client'
-  #- '../liveplot'
+  #- 'client'
+- 'cidl-odrive'
+- location: ../liveplot
+  extra-dep: true
+- location: ../cidl
+  extra-dep: true
 - location:
-    git: 'https://git.48.io/liveplot/'
-    commit: 6bdd32aa2e4f20553d76627b225f07c43beb77d9
+    git: https://github.com/jaredloomis/andromeda/
+    commit: 34c69c151aac69c5c6459fbe7caa5c235f98e6a2
+  extra-dep: true
+- location:
+    git:  https://github.com/sorki/Haskell-MVC-Library/
+    commit: 6c3b8870f9ef4d3d14dffba5199001acaf387c11
   extra-dep: true
 - location:
     git: 'https://git.48.io/pipes-serial/'
     commit: f83c7f37509d70f94f12784ca63ce27a5ad46ee3
-  extra-dep: true
-- location:
-    git: 'https://git.48.io/andromeda/'
-    commit: 7f1bd272e14c831caa030cd24354e8416b646263
-  extra-dep: true
-- location:
-    git: 'https://git.48.io/mvc/'
-    commit: bf1401391096ebfa3089d8f4de2141d2c21ddea7
   extra-dep: true
 - location: ../ivory-tower-stm32/
   extra-dep: true
@@ -53,11 +53,21 @@ packages:
   extra-dep: true
 - location: ../ivory-tower-hxstream/
   extra-dep: true
-- location: ./schema/
+- location: ../ivory-tower-canopen/
   extra-dep: true
   subdirs:
-    - odrive-schema-native
-    - odrive-schema-tower
+    - '.'
+    - ivory-tower-canopen-core
+    - schema/canopen-schema-tower
+- location: ../can4disco/
+  extra-dep: true
+- location: ../ivory-tower-base/
+  extra-dep: true
+- location: ./canopen-schema/
+  extra-dep: true
+  subdirs:
+    #- lambdadrive-schema-native
+    - lambdadrive-schema-tower
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
@@ -65,6 +75,7 @@ extra-deps:
 - serialport-0.4.6
 - vinyl-gl-0.3.0.1
 - Vec-1.0.5
+- monadLib-3.7.3
 
 # Override default flag values for local packages and extra-deps
 flags: {}

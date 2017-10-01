@@ -7,7 +7,7 @@ import Ivory.Stdlib
 
 import ODrive.Platforms (tim_period_clocks)
 import ODrive.Control.SVM (svm)
-import ODrive.Ivory.Types.Svm
+import LDrive.Ivory.Types.Svm
 
 current_modulation :: (GetAlloc eff ~ 'Scope s)
               => IFloat

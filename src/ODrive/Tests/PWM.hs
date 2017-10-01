@@ -48,6 +48,6 @@ app _tocc totestpwm toleds = do
 
         store (pwmout ! 0) val
         store (pwmout ! 1) val
-        store (pwmout ! 2) (val + 2000)
+        store (pwmout ! 2) val
         pwm_set (constRef pwmout)
         return ()

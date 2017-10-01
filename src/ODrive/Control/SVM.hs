@@ -11,7 +11,7 @@ module ODrive.Control.SVM where
 import Ivory.Language
 import Ivory.Stdlib
 
-import ODrive.Ivory.Types.Svm
+import LDrive.Ivory.Types.Svm
 
 -- space vector modulation
 -- generates phase modulations from alpha and beta

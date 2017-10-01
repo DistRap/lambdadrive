@@ -18,7 +18,7 @@ import Ivory.Tower
 import Ivory.Language.Cast
 import ODrive.Platforms
 import ODrive.Types
-import ODrive.Ivory.Types.Encoder
+import LDrive.Ivory.Types.Encoder
 
 import Ivory.BSP.STM32.Peripheral.GTIM2345
 import Ivory.BSP.STM32.Peripheral.GPIOF4

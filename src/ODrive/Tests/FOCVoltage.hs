@@ -15,9 +15,14 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Sched
+import Ivory.Tower.HAL.Bus.CAN
+import Ivory.Tower.HAL.Bus.Interface
+import Ivory.HW.Module
 
 import Ivory.BSP.STM32.ClockConfig
 import Ivory.BSP.STM32.Driver.SPI
+import Ivory.BSP.STM32.Driver.CAN
+import Ivory.BSP.STM32.Peripheral.CAN.Filter
 
 import ODrive.ADC
 import ODrive.Encoder
@@ -29,25 +34,32 @@ import ODrive.PWM
 import ODrive.Types
 import ODrive.Calibration
 import ODrive.Control.Modulation
-import ODrive.Ivory.Types.Adc
-import ODrive.Ivory.Types.Encoder
-import ODrive.Ivory.Types.AdcEncSample
-import ODrive.Ivory.Types.Calibration
-import ODrive.Ivory.Types.CalEnc
+import LDrive.Ivory.Types.Adc
+import LDrive.Ivory.Types.Encoder
+import LDrive.Ivory.Types.AdcEncSample
+import LDrive.Ivory.Types.Calibration
+import LDrive.Ivory.Types.CalEnc
+
+import CANOpen.Tower
+import CANOpen.Tower.Attr
+import CANOpen.Tower.Types
+import CANOpen.Tower.Interface.Cia402.Dict
 
 app :: (e -> ClockConfig)
     -> (e -> ADCs)
+    -> (e -> TestCAN)
     -> (e -> Enc)
     -> (e -> TestSPI)
     -> (e -> PWMOut)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()
-app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
+app tocc totestadcs totestcan totestenc totestspi totestpwm touart toleds = do
   odriveTowerDeps
 
   cc <- fmap tocc getEnv
   adcs  <- fmap totestadcs getEnv
+  can  <- fmap totestcan getEnv
   encm  <- fmap totestenc getEnv
   spi  <- fmap totestspi getEnv
   pwm  <- fmap totestpwm getEnv
@@ -59,9 +71,13 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
   blink (Milliseconds 1000) [redLED leds]
   blink (Milliseconds 666) [greenLED leds]
 
+  (res, req, _, _) <- canTower tocc (testCAN can) 1000000 (testCANRX can) (testCANTX can)
+
   Encoder{..} <- encoderTower encm
 
-  ext <- extIntTower testExti
+  attrs@Cia402Attrs{..} <- towerCia402Attrs initCia402Attrs
+  od@ObjDict{..} <- objDictTower attrs
+  canopenTower res req (canOpenLEDs leds) od
 
   let devices = [ drv8301M0
                 , drv8301M1
@@ -93,17 +109,16 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
     speedOffset <- stateInit "speedOffset" $ ival (0.0 :: IFloat)
 
-    trig <- state "trig"
-    trigFlip <- state "trigFlip"
     drvfault <- state "drvfault"
 
-    handler ext "ext" $ do
-      callback $ const $ do
-        store trig true
-        tf <- deref trigFlip
-        ifte_ (tf) (store trigFlip false >> ledOff (greenLED leds))
-          (store trigFlip true >> ledOn (greenLED leds))
-        speedOffset %= (+0.1)
+
+    received <- stateInit "received" (ival (0 :: Uint32))
+    command <- stateInit "command" (ival (0 :: Uint8))
+
+    -- we take targetVelocity from CANOpen dictionary divided by 10 
+    -- as a very simple control mechanism
+    attrHandler targetVelocity $ callbackV $ \vel -> do
+        store speedOffset (safeCast ((signCast :: Sint32 -> Uint32) vel) / 10)
 
     handler systemInit "init" $ do
       callback $ const $ do
@@ -112,6 +127,12 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
 
         -- check that we don't get problems with discrete time approximation
         assert ((currentMeasPeriod cc) * kp <? 1.0)
+
+        -- empty can filter
+        let emptyID = CANFilterID32 (fromRep 0) (fromRep 0) False False
+        canFilterInit (testCANFilters can)
+                      [CANFilterBank CANFIFO0 CANFilterMask $ CANFilter32 emptyID emptyID]
+                      []
 
     pwmout <- stateInit "pwmout" $ iarray [ival 0, ival 0, ival 0]
 
@@ -145,6 +166,7 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
     handler adc_chan "adc_chan" $ do
       timings <- emitter timingsIn 1
       calAdcEncE <- emitter calAdcEncIn 1
+      velE <- attrEmitter velocityActual
       callback $ \adc -> do
 
         enc <- encoder_get encState
@@ -168,6 +190,9 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
           bus <- deref (adc ~> vbus)
           ph <- deref (enc ~> phase)
 
+          vel <- enc ~>* pll_vel
+          emitV velE $ castDefault vel
+
           so <- deref speedOffset
 
           let c = cos ph
@@ -180,3 +205,13 @@ app tocc totestadcs totestenc totestspi totestpwm touart toleds = do
           voltage_modulation bus vA vB pwmout
 
           emit timings (constRef pwmout)
+
+   where canOpenLEDs leds =
+          CANOpenLEDs
+            { leds_init = ledSetup (greenLED leds) >> ledSetup (redLED leds)
+            , leds_module = hw_moduledef
+            , leds_err_on = ledOn $ redLED leds
+            , leds_err_off = ledOff $ redLED leds
+            , leds_run_on = ledOn $ greenLED leds
+            , leds_run_off = ledOff $ greenLED leds
+            }

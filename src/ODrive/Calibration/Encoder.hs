@@ -8,12 +8,12 @@ import Ivory.Tower
 
 import ODrive.Types
 import ODrive.Control.Modulation
-import ODrive.Ivory.Types.Adc
-import ODrive.Ivory.Types.Encoder
-import ODrive.Ivory.Types.AdcEncSample
-import ODrive.Ivory.Types.CalEnc
-import ODrive.Ivory.Types.CalError
-import ODrive.Ivory.Types.Calibration
+import LDrive.Ivory.Types.Adc
+import LDrive.Ivory.Types.Encoder
+import LDrive.Ivory.Types.AdcEncSample
+import LDrive.Ivory.Types.CalEnc
+import LDrive.Ivory.Types.CalError
+import LDrive.Ivory.Types.Calibration
 
 encoderOffsetTower :: IFloat
                    -> ChanOutput ('Struct "calibration")

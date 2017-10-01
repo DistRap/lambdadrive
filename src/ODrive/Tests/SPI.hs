@@ -32,8 +32,7 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc totestspi touart toleds = do
-  towerDepends odriveTypes
-  towerModule  odriveTypes
+  odriveTowerDeps
 
   spi  <- fmap totestspi getEnv
   leds <- fmap toleds getEnv

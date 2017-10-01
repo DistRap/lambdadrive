@@ -345,6 +345,7 @@ externalXtalDivs xtal_mhz sysclk_mhz Divs{..} = ClockConfig
   , clockconfig_pclk2_divider = div_pclk2
   }
 
+-- STM32F405RGT6
 odriveSTMConfig :: Integer -> STM32Config
 odriveSTMConfig xtal_mhz = STM32Config
   { stm32config_processor  = STM32F405
@@ -353,7 +354,8 @@ odriveSTMConfig xtal_mhz = STM32Config
   -- XXX: this is 192 in total (112+16+64)
   -- 64 is CCM (core coupled memory)
   -- + 4kb additional backup sram
-  , stm32config_sram       = 128 * 1024
+--  , stm32config_sram       = 128 * 1024
+  , stm32config_sram       = 164 * 1024
   }
   where
     divs = Divs

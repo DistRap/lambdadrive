@@ -8,9 +8,9 @@ import Ivory.Tower
 
 import ODrive.Types
 import ODrive.Control.Modulation
-import ODrive.Ivory.Types.Adc
-import ODrive.Ivory.Types.CalR
-import ODrive.Ivory.Types.Calibration
+import LDrive.Ivory.Types.Adc
+import LDrive.Ivory.Types.CalR
+import LDrive.Ivory.Types.Calibration
 
 phaseLockTower :: IFloat
                -> ChanOutput ('Struct "calibration")

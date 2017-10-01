@@ -14,11 +14,11 @@ import ODrive.Calibration.Inductance
 import ODrive.Calibration.Encoder
 import ODrive.Calibration.Resistance
 import ODrive.Calibration.Lock
-import ODrive.Ivory.Types.Calibration
-import ODrive.Ivory.Types.CalI
-import ODrive.Ivory.Types.CalEnc
-import ODrive.Ivory.Types.CalR
-import ODrive.Ivory.Types.AdcEncSample
+import LDrive.Ivory.Types.Calibration
+import LDrive.Ivory.Types.CalI
+import LDrive.Ivory.Types.CalEnc
+import LDrive.Ivory.Types.CalR
+import LDrive.Ivory.Types.AdcEncSample
 
 calibrationTower :: ClockConfig
                  -> PWMInput

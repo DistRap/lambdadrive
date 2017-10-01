@@ -17,6 +17,6 @@ set mem inaccessible-by-default off
 #display sumFwd
 #display sumBack
 
-display calibState
-display lastSample
-display control
+#display calibState
+#display lastSample
+#display control

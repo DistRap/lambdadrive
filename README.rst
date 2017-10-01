@@ -1,7 +1,8 @@
-odrive firmware
-===============
+lambdadrive firmware
+====================
 
-Experimental version of `ODrive Firmware <https://github.com/madcowswe/ODriveFirmware>`_
+
+CANOpen BLDC controller firmware, experimental version of `ODrive Firmware <https://github.com/madcowswe/ODriveFirmware>`_
 
 Written in http://ivorylang.org/
 
@@ -46,9 +47,6 @@ SPI
   Polls status register every 1000ms after successful initialization.
 CANSendRecv
   Test application sending packets from CAN1, blinks on received packets.
-CAN2UART
-  Test application for receiving and sending
-  CAN packets controlled by UART
 Blink
   Blinks external LEDs on GPIO1 and GPIO2
 Spin

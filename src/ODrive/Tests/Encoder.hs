@@ -23,7 +23,7 @@ import ODrive.Platforms
 import ODrive.LED
 import ODrive.Types
 import ODrive.Serialize
-import ODrive.Ivory.Types.Encoder
+import LDrive.Ivory.Types.Encoder
 
 app :: (e -> ClockConfig)
     -> (e -> Enc)

@@ -19,8 +19,8 @@ import ODrive.Platforms
 import ODrive.Types
 import ODrive.Utils
 import ODrive.PWM
-import ODrive.Ivory.Types.Adc
-import ODrive.Ivory.Types.Dccal
+import LDrive.Ivory.Types.Adc
+import LDrive.Ivory.Types.Dccal
 
 -- handles concurrent ADC measurements and DRV8301 DC_CAL pin toggling
 -- ADC1 vbus

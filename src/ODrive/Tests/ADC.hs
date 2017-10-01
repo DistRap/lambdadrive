@@ -92,7 +92,7 @@ adcTower ADC {adcPeriph=adcp@ADCPeriph{..}, adcChan=chan, adcInjChan=ichan, adcI
         comment "injected channel sequence, rank 1"
         modifyReg adcRegJSQR $ do
           --setField adc_jsq1 (fromRep 0)
-          -- !!! only jsqr4 is read if jsqr_jl is 0, or not ???
+          -- !!! only jsqr4 is read if jsqr_jl is 0
           -- jsr and jdr correspondence? will better see this on another channel then 0
           setField adc_jsqr4 (fromRep 0)
 
@@ -121,8 +121,7 @@ app :: (e -> ClockConfig)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app tocc  totestadc totestpwm touart toleds = do
-  towerDepends odriveTypes
-  towerModule  odriveTypes
+  odriveTowerDeps
 
   adc  <- fmap totestadc getEnv
   pwm  <- fmap totestpwm getEnv

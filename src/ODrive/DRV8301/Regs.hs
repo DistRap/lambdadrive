@@ -10,7 +10,7 @@ module ODrive.DRV8301.Regs where
 
 import Ivory.Language
 import ODrive.DRV8301.RegTypes
-import ODrive.Ivory.Types.DrvFault
+import LDrive.Ivory.Types.DrvFault
 
 [ivory|
  bitdata Drv8301 :: Bits 16 = drv_dat_reg

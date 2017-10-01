@@ -24,8 +24,10 @@ import Ivory.HW
 import Ivory.Tower
 import Ivory.Serialize
 
-import ODrive.Ivory.Types
 import ODrive.Control.PID
+
+import CANOpen.Ivory.Types as COTypes
+import LDrive.Ivory.Types as LDTypes
 
 [ivory| string struct UARTBuffer 128 |]
 
@@ -62,7 +64,8 @@ odriveTypes = package "odrive_types" $ do
   defStruct (Proxy :: Proxy "PID")
 
   depend serializeModule
-  mapM_ depend typeModules
+  mapM_ depend LDTypes.typeModules
+  mapM_ depend COTypes.typeModules
 
 
 odriveTowerDeps :: Tower e ()
@@ -70,8 +73,11 @@ odriveTowerDeps = do
   towerDepends odriveTypes
   towerModule odriveTypes
 
-  mapM_ towerDepends typeModules
-  mapM_ towerModule typeModules
+  mapM_ towerDepends LDTypes.typeModules
+  mapM_ towerModule LDTypes.typeModules
+
+  mapM_ towerDepends COTypes.typeModules
+  mapM_ towerModule COTypes.typeModules
 
   towerDepends serializeModule
   towerModule  serializeModule
