@@ -1,4 +1,4 @@
-module ODrive.Client.Pipes where
+module LDrive.Client.Pipes where
 
 import Pipes
 import Pipes.Serial

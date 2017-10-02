@@ -3,7 +3,7 @@ TOWER_REPO             ?= ../../tower
 IVORY_TOWER_STM32_REPO ?= ../../ivory-tower-stm32
 IVORY_TOWER_CANOPEN    ?= ../../ivory-tower-canopen
 
-GIDL ?= cidl-odrive
+GIDL ?= cidl-lambdadrive
 NAME ?= LDrive # name prefix
 
 #default: lambdadrive-schema-native

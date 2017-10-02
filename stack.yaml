@@ -7,7 +7,7 @@ resolver: lts-9.1
 packages:
 - '.'
   #- 'client'
-- 'cidl-odrive'
+- 'cidl-lambdadrive'
 - location: ../liveplot
   extra-dep: true
 - location: ../cidl

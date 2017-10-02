@@ -5,7 +5,7 @@ resolver: lts-9.1
 
 # Local packages, usually specified by relative directory name
 packages:
-- 'cidl-odrive'
+- 'cidl-lambdadrive'
 - location: ../cidl/
 - location: ../ivory/
   extra-dep: true

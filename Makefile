@@ -35,16 +35,16 @@ clean: $(CLEANS)
 
 # This target bootstraps Gidl if the generated packages do not exist
 # yet, then calls the default target to generate them.
-.PHONY: cidl-odrive-bootstrap
-cidl-odrive-bootstrap:
-	stack --stack-yaml=cidl-bootstrap.yaml install cidl-odrive
+.PHONY: cidl-lambdadrive-bootstrap
+cidl-lambdadrive-bootstrap:
+	stack --stack-yaml=cidl-bootstrap.yaml install cidl-lambdadrive
 
-schema: cidl-odrive-bootstrap
+schema: cidl-lambdadrive-bootstrap
 	make -C canopen-schema
 
 define MKTEST
 $(1): schema
-	# ideally we would be only target executable
+	# ideally we would build only the target executable
 	# needs fixing in stack
 	# https://github.com/commercialhaskell/stack/issues/1406
 	stack build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'

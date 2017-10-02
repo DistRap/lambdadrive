@@ -1,0 +1,63 @@
+name:                lambdadrive-client
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://48.io
+license:             BSD3
+license-file:        LICENSE
+author:              Richard Marko
+maintainer:          srk@48.io
+copyright:           2017 Richard Marko
+category:            Web
+build-type:          Simple
+extra-source-files:  README.rst
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     LDrive
+                       LDrive.Client
+                       LDrive.Client.Pipes
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring
+                     , cereal
+                     , pipes
+                     , pipes-serial
+                     , ivory-tower-hxstream
+                     , lambdadrive-schema-native
+  default-language:    Haskell2010
+
+executable lambdadrive
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:       base
+                     , async
+                     , containers
+                     , pipes-serial
+                     , serialport
+                     , bytestring
+                     , mvc
+                     , liveplot
+                     , pipes
+                     , pipes-bytestring
+                     , ivory-tower-hxstream
+                     , either
+                     , cereal
+                     , stm
+                     , random
+                     , lambdadrive-schema-native
+                     , lambdadrive-client
+  default-language:    Haskell2010
+
+test-suite graph-test-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     --, graph-test
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/graph-test

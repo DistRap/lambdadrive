@@ -10,11 +10,11 @@ import qualified Data.ByteString.Char8 as B
 import qualified HXStream.Native as HX
 import qualified Pipes.Prelude as P
 
-import ODrive.Types.Adc
-import ODrive.Types.Encoder
-import ODrive.Types.Svm
-import ODrive.Types.CurrentControl
-import ODrive.Client.Pipes
+import LDrive.Types.Adc
+import LDrive.Types.Encoder
+import LDrive.Types.Svm
+import LDrive.Types.CurrentControl
+import LDrive.Client.Pipes
 -- lp
 import MVC
 import qualified MVC.Prelude as MVC
