@@ -1,4 +1,9 @@
-#include ../stack.mk
+OSNAME :=$(shell grep -o '^NAME=.*$$' /etc/os-release | cut -d'=' -f2 )
+ifeq ($(OSNAME),NixOS)
+       STACK=stack --nix
+else
+       STACK=stack
+endif
 
 TARGET ?= /dev/odrive
 #TARGET ?= /dev/f4gdb
@@ -37,7 +42,7 @@ clean: $(CLEANS)
 # yet, then calls the default target to generate them.
 .PHONY: cidl-lambdadrive-bootstrap
 cidl-lambdadrive-bootstrap:
-	stack --stack-yaml=cidl-bootstrap.yaml install cidl-lambdadrive
+	$(STACK) --stack-yaml=cidl-bootstrap.yaml install cidl-lambdadrive
 
 schema: cidl-lambdadrive-bootstrap
 	make -C canopen-schema
@@ -47,7 +52,7 @@ $(1): schema
 	# ideally we would build only the target executable
 	# needs fixing in stack
 	# https://github.com/commercialhaskell/stack/issues/1406
-	stack build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
+	$(STACK) build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
 	make -C build/$(1)
 $(1)-clean:
 	rm -rf build/$(1)
@@ -63,7 +68,7 @@ endef
 
 define MK_AADL_TEST
 $(1):
-	stack build . --exec '$(1)_gen --src-dir=build_aadl/$(1) $(IVORYFLAGS)'
+	$(STACK) build . --exec '$(1)_gen --src-dir=build_aadl/$(1) $(IVORYFLAGS)'
 $(1)_clean:
 	rm -rf build_aadl/$(1)
 endef
