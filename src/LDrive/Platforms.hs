@@ -50,6 +50,8 @@ import Ivory.BSP.STM32.Interrupt
 
 import LDrive.LED as LED
 
+import Ivory.Tower.Drivers.PWM.ATIM
+
 testPlatformParser :: ConfigParser TestPlatform
 testPlatformParser = do
   p <- subsection "args" $ subsection "platform" string
@@ -111,18 +113,6 @@ data Enc = EncTimer {
     , encAf     :: GPIO_AF
     }
 
-data PWMOut = PWMTimer {
-      pwmTim  :: F405.ATIM
-    , pwmC1   :: GPIOPin
-    , pwmC2   :: GPIOPin
-    , pwmC3   :: GPIOPin
-    , pwmC1N  :: GPIOPin
-    , pwmC2N  :: GPIOPin
-    , pwmC3N  :: GPIOPin
-    , pwmAf   :: GPIO_AF
-    , pwmInit :: Uint16
-    }
-
 data ExtInt =
   ExtInt
   { extInt :: HasSTM32Interrupt,
@@ -140,7 +130,7 @@ data TestPlatform =
     , testplatform_rng   :: RNG
     , testplatform_stm32 :: STM32Config
     , testplatform_enc   :: Enc
-    , testplatform_pwm   :: PWMOut
+    , testplatform_pwm   :: PWMTimer
     , testplatform_adc1  :: ADC
     , testplatform_adc2  :: ADC
     , testplatform_adc3  :: ADC
@@ -201,17 +191,17 @@ enc1 = EncTimer F405.tim4 F405.pinB6 F405.pinB7 F405.gpio_af_tim4
 enc1Z0 :: GPIOPin
 enc1Z0 = F405.pinB3
 
-pwm0 :: PWMOut
+pwm0 :: PWMTimer
 pwm0 = PWMTimer F405.tim1
     F405.pinA8 F405.pinA9 F405.pinA10
     F405.pinB13 F405.pinB14 F405.pinB15
-    F405.gpio_af_tim1 0
+    F405.gpio_af_tim1 0 tim_period_clocks
 
-pwm1 :: PWMOut
+pwm1 :: PWMTimer
 pwm1 = PWMTimer F405.tim8
     F405.pinC6 F405.pinC7 F405.pinC8
     F405.pinA7 F405.pinB0 F405.pinB1
-    F405.gpio_af_tim8 0
+    F405.gpio_af_tim8 0 tim_period_clocks
 
 drv8301M0 :: SPIDevice
 drv8301M0 =  SPIDevice

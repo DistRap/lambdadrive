@@ -23,7 +23,7 @@ import Ivory.BSP.STM32.Peripheral.GPIOF4
 
 import LDrive.Platforms
 import LDrive.LED
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 import LDrive.Types
 import LDrive.Utils
 
@@ -116,7 +116,7 @@ adc_in_pin p = do
 
 app :: (e -> ClockConfig)
     -> (e -> ADC)
-    -> (e -> PWMOut)
+    -> (e -> PWMTimer)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()

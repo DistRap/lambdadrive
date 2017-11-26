@@ -30,7 +30,7 @@ import LDrive.ExtInt
 import LDrive.DRV8301
 import LDrive.Platforms
 import LDrive.LED
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 import LDrive.Types
 import LDrive.Calibration
 import LDrive.Control.Modulation
@@ -50,7 +50,7 @@ app :: (e -> ClockConfig)
     -> (e -> TestCAN)
     -> (e -> Enc)
     -> (e -> TestSPI)
-    -> (e -> PWMOut)
+    -> (e -> PWMTimer)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()

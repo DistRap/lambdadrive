@@ -25,7 +25,7 @@ import LDrive.Encoder
 import LDrive.DRV8301
 import LDrive.Platforms
 import LDrive.LED
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 import LDrive.Types
 import LDrive.Serialize
 import LDrive.Control.Modulation
@@ -35,7 +35,7 @@ app :: (e -> ClockConfig)
     -> (e -> ADCs)
     -> (e -> Enc)
     -> (e -> TestSPI)
-    -> (e -> PWMOut)
+    -> (e -> PWMTimer)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()

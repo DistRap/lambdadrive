@@ -68,6 +68,8 @@ packages:
   subdirs:
     #- lambdadrive-schema-native
     - lambdadrive-schema-tower
+- location: ../ivory-tower-drivers/
+  extra-dep: true
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:

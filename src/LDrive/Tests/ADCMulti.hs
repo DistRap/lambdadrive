@@ -25,13 +25,13 @@ import LDrive.ADC
 import LDrive.Platforms
 import LDrive.Types
 import LDrive.LED
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 import LDrive.Utils
 import LDrive.Serialize
 
 app :: (e -> ClockConfig)
     -> (e -> ADCs)
-    -> (e -> PWMOut)
+    -> (e -> PWMTimer)
     -> (e -> TestUART)
     -> (e -> ColoredLEDs)
     -> Tower e ()

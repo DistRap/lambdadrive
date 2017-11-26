@@ -18,10 +18,10 @@ import Ivory.BSP.STM32.ClockConfig
 import LDrive.Platforms
 import LDrive.LED
 import LDrive.Types
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 
 app :: (e -> ClockConfig)
-    -> (e -> PWMOut)
+    -> (e -> PWMTimer)
     -> (e -> ColoredLEDs)
     -> Tower e ()
 app _tocc totestpwm toleds = do

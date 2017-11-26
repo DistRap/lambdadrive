@@ -18,7 +18,7 @@ import Ivory.BSP.STM32.Peripheral.ATIM18
 import LDrive.Platforms
 import LDrive.Types
 import LDrive.Utils
-import LDrive.PWM
+import Ivory.Tower.Drivers.PWM.ATIM
 import LDrive.Ivory.Types.Adc
 import LDrive.Ivory.Types.Dccal
 
